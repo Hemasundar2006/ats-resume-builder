@@ -11,9 +11,13 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-pdf': ['@react-pdf/renderer'],
-          'vendor-ui': ['framer-motion', 'lucide-react', 'axios'],
+        manualChunks(id) {
+          if (id.includes('@react-pdf/renderer')) {
+            return 'vendor-pdf';
+          }
+          if (id.includes('framer-motion') || id.includes('lucide-react') || id.includes('axios')) {
+            return 'vendor-ui';
+          }
         }
       }
     }
