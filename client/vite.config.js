@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 3000,
+<<<<<<< HEAD
   },
   build: {
     rollupOptions: {
@@ -21,5 +22,7 @@ export default defineConfig({
         }
       }
     }
+=======
+>>>>>>> parent of b0dc85a (feat: establish initial ATS resume builder application structure with landing page, template gallery, and builder components.)
   }
 })
