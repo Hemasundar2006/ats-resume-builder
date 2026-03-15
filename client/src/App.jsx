@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Download, CheckCircle, XCircle, User, Briefcase, GraduationCap, Code, Star, AlignLeft, Plus, Trash2, X, ChevronRight, Sparkles, Award, ArrowLeft, Eye, Edit3 } from 'lucide-react';
+import { FileText, Download, CheckCircle, XCircle, User, Briefcase, GraduationCap, Code, Star, AlignLeft, Plus, Trash2, X, ChevronRight, Sparkles, Award, ArrowLeft, Eye, Edit3, Layout } from 'lucide-react';
 import axios from 'axios';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { ResumePDF } from './components/ResumePDF';
@@ -9,6 +9,21 @@ import download from 'downloadjs';
 import { useRef } from 'react';
 
 axios.defaults.baseURL = 'https://ats-resume-builder-7xio.onrender.com';
+
+const TEMPLATES = [
+  { id: 'classic', name: 'Classic ATS', desc: 'Standard serif, high parseability', image: 'template_classic_ats_1773575577224.png' },
+  { id: 'executive', name: 'Executive', desc: 'Centered header, professional borders', image: 'template_executive_pro_1773575594518.png' },
+  { id: 'modern', name: 'Modern Tech', desc: 'Blue accents, sans-serif, energetic', image: 'template_modern_tech_1773575608386.png' },
+  { id: 'sidebar', name: 'Premium Sidebar', desc: 'Sophisticated two-column layout', image: 'template_sidebar_premium_1773575628002.png' },
+  { id: 'academic', name: 'Academic CV', desc: 'Data-dense, multi-page optimized', image: 'template_academic_cv_1773575647187.png' },
+  { id: 'minimal', name: 'Ultra Minimalist', desc: 'Clean, spacious, modern feel', image: 'template_minimalist_clean_1773575665286.png' },
+  { id: 'google', name: 'Tech Giant', desc: 'Inspired by Google/Amazon tech formats', image: 'template_google_style_1773576109412.png' },
+  { id: 'consultant', name: 'Big Four', desc: 'Sophisticated McKinsey-style strategy layout', image: 'template_mckinsey_style_1773576127656.png' },
+  { id: 'ivy', name: 'Ivy League', desc: 'Prestigious Harvard-style classic format', image: 'template_harvard_style_1773576145088.png' },
+  { id: 'creative', name: 'Creative Media', desc: 'Dynamic energetic layout for media pros', image: 'template_creative_media_1773576165549.png' },
+  { id: 'healthcare', name: 'Healthcare Pro', desc: 'Clinical, structured medical format', image: 'template_healthcare_pro_1773576182642.png' },
+  { id: 'sales', name: 'Sales Ninja', desc: 'High-impact metric focused achievement layout', image: 'template_sales_ninja_1773576200547.png' }
+];
 
 // --- Landing Page Component ---
 const LandingPage = ({ onStart }) => {
@@ -95,24 +110,8 @@ const LandingPage = ({ onStart }) => {
 
 // --- Template Gallery Stage ---
 const TemplateGallery = ({ onSelect, onBack }) => {
-  const templates = [
-    { id: 'classic', name: 'Classic ATS', desc: 'Standard serif, high parseability', image: 'template_classic_ats_1773575577224.png' },
-    { id: 'executive', name: 'Executive', desc: 'Centered header, professional borders', image: 'template_executive_pro_1773575594518.png' },
-    { id: 'modern', name: 'Modern Tech', desc: 'Blue accents, sans-serif, energetic', image: 'template_modern_tech_1773575608386.png' },
-    { id: 'sidebar', name: 'Premium Sidebar', desc: 'Sophisticated two-column layout', image: 'template_sidebar_premium_1773575628002.png' },
-    { id: 'academic', name: 'Academic CV', desc: 'Data-dense, multi-page optimized', image: 'template_academic_cv_1773575647187.png' },
-    { id: 'minimal', name: 'Ultra Minimalist', desc: 'Clean, spacious, modern feel', image: 'template_minimalist_clean_1773575665286.png' },
-    { id: 'google', name: 'Tech Giant', desc: 'Inspired by Google/Amazon tech formats', image: 'template_google_style_1773576109412.png' },
-    { id: 'consultant', name: 'Big Four', desc: 'Sophisticated McKinsey-style strategy layout', image: 'template_mckinsey_style_1773576127656.png' },
-    { id: 'ivy', name: 'Ivy League', desc: 'Prestigious Harvard-style classic format', image: 'template_harvard_style_1773576145088.png' },
-    { id: 'creative', name: 'Creative Media', desc: 'Dynamic energetic layout for media pros', image: 'template_creative_media_1773576165549.png' },
-    { id: 'healthcare', name: 'Healthcare Pro', desc: 'Clinical, structured medical format', image: 'template_healthcare_pro_1773576182642.png' },
-    { id: 'sales', name: 'Sales Ninja', desc: 'High-impact metric focused achievement layout', image: 'template_sales_ninja_1773576200547.png' }
-  ];
-
   return (
     <div className="min-h-screen bg-black p-6 md:p-20 overflow-y-auto custom-scrollbar relative">
-      {/* Back Button */}
       <motion.button
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
@@ -137,7 +136,7 @@ const TemplateGallery = ({ onSelect, onBack }) => {
       </motion.div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 max-w-7xl mx-auto">
-        {templates.map((tpl, i) => (
+        {TEMPLATES.map((tpl, i) => (
           <motion.div
             key={tpl.id}
             initial={{ opacity: 0, y: 30 }}
@@ -154,7 +153,6 @@ const TemplateGallery = ({ onSelect, onBack }) => {
                 className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity grayscale group-hover:grayscale-0"
               />
               
-              {/* Overlay with Button */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent flex items-end p-8 opacity-0 group-hover:opacity-100 transition-all">
                 <button className="w-full py-4 bg-[#ccff00] text-black font-black uppercase tracking-widest rounded-xl shadow-[0_10px_30px_rgba(204,255,0,0.3)] transform translate-y-4 group-hover:translate-y-0 transition-all">
                   Get Started
@@ -175,15 +173,61 @@ const TemplateGallery = ({ onSelect, onBack }) => {
 const BuilderPage = ({ initialTemplate, onBack }) => {
   const resumeRef = useRef(null);
 
-  const downloadImage = () => {
+  const downloadImage = async () => {
     if (resumeRef.current === null) return;
-    toPng(resumeRef.current, { quality: 1, pixelRatio: 2 })
-      .then((dataUrl) => {
-        download(dataUrl, 'my-resume.png');
-      })
-      .catch((err) => {
-        console.error('oops, something went wrong!', err);
+    
+    try {
+      // Step 1: Capture the entire content at high resolution
+      const dataUrl = await toPng(resumeRef.current, { 
+        quality: 1, 
+        pixelRatio: 3, // High quality for professional use
+        backgroundColor: '#ffffff',
+        style: {
+          transform: 'scale(1)',
+          borderRadius: '0'
+        }
       });
+      
+      const img = new Image();
+      img.src = dataUrl;
+      await new Promise(resolve => img.onload = resolve);
+      
+      const canvasWidth = img.width;
+      const canvasHeight = img.height;
+      
+      // Calculate A4 Proportion Height (210mm x 297mm)
+      const pageHeight = Math.floor((canvasWidth / 210) * 297);
+      const totalPages = Math.ceil(canvasHeight / pageHeight);
+      
+      const fileNameBase = `${dataPayload.personalInfo.fullName.replace(/\s+/g, '_') || 'Resume'}_${dataPayload.experience[0]?.jobTitle.replace(/\s+/g, '_') || 'Professional'}_ResuSolve`;
+
+      if (totalPages <= 1) {
+        // Just download the single page if it fits
+        download(dataUrl, `${fileNameBase}.png`);
+      } else {
+        // Loop through and split into multiple A4-sized images
+        for (let i = 0; i < totalPages; i++) {
+          const pageCanvas = document.createElement('canvas');
+          pageCanvas.width = canvasWidth;
+          pageCanvas.height = pageHeight;
+          const ctx = pageCanvas.getContext('2d');
+          
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvasWidth, pageHeight);
+          
+          ctx.drawImage(
+            img,
+            0, i * pageHeight, canvasWidth, pageHeight, // Source Rect
+            0, 0, canvasWidth, pageHeight // Dest Rect
+          );
+          
+          const pageDataUrl = pageCanvas.toDataURL('image/png', 1.0);
+          download(pageDataUrl, `${fileNameBase}_Page_${i + 1}.png`);
+        }
+      }
+    } catch (err) {
+      console.error('High-quality image export failed:', err);
+    }
   };
 
   // Tabs Navigation
@@ -194,7 +238,8 @@ const BuilderPage = ({ initialTemplate, onBack }) => {
     { id: 'education', name: 'Education', icon: <GraduationCap size={16} /> },
     { id: 'projects', name: 'Projects', icon: <Code size={16} /> },
     { id: 'skills', name: 'Skills', icon: <Star size={16} /> },
-    { id: 'awards', name: 'Awards', icon: <Award size={16} /> }
+    { id: 'awards', name: 'Awards', icon: <Award size={16} /> },
+    { id: 'templates', name: 'Themes', icon: <Layout size={16} /> }
   ];
   const [activeTab, setActiveTab] = useState('personal');
 
@@ -497,6 +542,40 @@ const BuilderPage = ({ initialTemplate, onBack }) => {
                 </div>
               )}
 
+              {/* 8. TEMPLATE PICKER */}
+              {activeTab === 'templates' && (
+                <div>
+                  <h2 className="text-2xl font-black mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-indigo-200">Switch Themes</h2>
+                  <p className="text-gray-400 mb-8 text-sm italic">Switch styles instantly without losing your progress.</p>
+                  
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+                    {TEMPLATES.map((tpl) => (
+                      <motion.div
+                        key={tpl.id}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setSelectedTemplate(tpl.id)}
+                        className={`cursor-pointer rounded-2xl overflow-hidden border-2 transition-all group relative ${
+                          selectedTemplate === tpl.id ? 'border-[#ccff00] shadow-[0_0_20px_rgba(204,255,0,0.3)]' : 'border-white/5 hover:border-white/20'
+                        }`}
+                      >
+                        <div className="aspect-[3/4] bg-white relative">
+                          <img src={`/${tpl.image}`} alt={tpl.name} className="w-full h-full object-cover opacity-80" />
+                          {selectedTemplate === tpl.id && (
+                            <div className="absolute inset-0 bg-[#ccff00]/20 flex items-center justify-center">
+                              <CheckCircle className="text-black bg-[#ccff00] rounded-full" size={24} />
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-3 bg-gray-900/90">
+                          <p className="text-[10px] font-black uppercase text-white truncate">{tpl.name}</p>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
             </motion.div>
           </AnimatePresence>
 
@@ -524,8 +603,10 @@ const BuilderPage = ({ initialTemplate, onBack }) => {
           initial={{ opacity: 0, rotateX: 10, y: 30 }}
           animate={{ opacity: 1, rotateX: 0, y: 0 }}
           transition={{ duration: 0.6, type: "spring" }}
-          className={`w-full max-w-[210mm] bg-white text-gray-900 rounded-[2px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8),0_0_20px_rgba(255,255,255,0.05)] text-sm min-h-[297mm] transform-gpu flex ${selectedTemplate === 'sidebar' ? 'flex-row' : 'flex-col'} overflow-hidden relative`}
+          className={`w-full max-w-[210mm] bg-white text-gray-900 rounded-[2px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8),0_0_20px_rgba(255,255,255,0.05)] text-sm min-h-[297mm] transform-gpu flex ${selectedTemplate === 'sidebar' ? 'flex-row' : 'flex-col'} overflow-visible relative`}
         >
+          {/* Visual Page Break Guide (Hidden in export) */}
+          <div className="absolute top-[297mm] left-0 w-full border-t border-dashed border-gray-200 pointer-events-none z-50 print:hidden opacity-50" title="Page Break Guide"></div>
           {/* Sidebar Part */}
           {selectedTemplate === 'sidebar' && (
             <div className="w-[30%] bg-[#1e293b] text-white p-6 sm:p-10 flex flex-col">
@@ -551,12 +632,12 @@ const BuilderPage = ({ initialTemplate, onBack }) => {
           <div className={`${selectedTemplate === 'sidebar' ? 'w-[70%] p-10' : 'p-10 sm:p-14'}`}>
             {/* Header logic */}
             {selectedTemplate !== 'sidebar' && (
-              <div className={`pb-5 mb-5 
-                ${selectedTemplate === 'executive' || selectedTemplate === 'ivy' ? 'text-center' : 'text-left'} 
+              <div className={`pb-6 mb-8 
+                ${selectedTemplate === 'executive' || selectedTemplate === 'ivy' || selectedTemplate === 'classic' ? 'text-center' : 'text-left'} 
                 ${selectedTemplate === 'modern' || selectedTemplate === 'minimal' || selectedTemplate === 'google' ? 'border-none' : 'border-b-2 border-black'}
                 ${selectedTemplate === 'google' ? 'border-b border-gray-100 pb-2' : ''}
               `}>
-                <h1 className={`font-black text-black mb-2
+                <h1 className={`font-black text-black mb-4 leading-tight
                   ${selectedTemplate === 'modern' ? 'text-blue-600 text-5xl font-sans' : 
                     selectedTemplate === 'executive' ? 'text-4xl uppercase tracking-[0.2em]' : 
                     selectedTemplate === 'minimal' ? 'text-5xl font-light font-sans text-black tracking-tighter' : 
@@ -567,19 +648,23 @@ const BuilderPage = ({ initialTemplate, onBack }) => {
                     'text-4xl'}`}>
                   {dataPayload.personalInfo.fullName || 'YOUR NAME'}
                 </h1>
-                <div className={`text-gray-800 flex ${selectedTemplate === 'executive' || selectedTemplate === 'ivy' ? 'justify-center' : 'justify-start'} gap-4 flex-wrap text-xs sm:text-sm font-bold`}>
-                  {dataPayload.personalInfo.email && <span>{dataPayload.personalInfo.email}</span>}
-                  {dataPayload.personalInfo.phone && <span>{selectedTemplate === 'modern' || selectedTemplate === 'google' ? '• ' : '| '}{dataPayload.personalInfo.phone}</span>}
-                  {dataPayload.personalInfo.linkedin && <span>{selectedTemplate === 'modern' || selectedTemplate === 'google' ? '• ' : '| '}{dataPayload.personalInfo.linkedin}</span>}
-                </div>
+                <p className={`text-black text-[10px] sm:text-xs font-bold opacity-80 leading-relaxed max-w-2xl ${selectedTemplate === 'executive' || selectedTemplate === 'ivy' || selectedTemplate === 'classic' ? 'mx-auto text-center' : 'text-left'}`}>
+                  {[
+                    dataPayload.personalInfo.email,
+                    dataPayload.personalInfo.phone,
+                    dataPayload.personalInfo.linkedin?.replace(/^(https?:\/\/)?(www\.)?/, ''),
+                    dataPayload.personalInfo.github?.replace(/^(https?:\/\/)?(www\.)?/, ''),
+                    dataPayload.personalInfo.portfolio?.replace(/^(https?:\/\/)?(www\.)?/, '')
+                  ].filter(Boolean).join(selectedTemplate === 'modern' || selectedTemplate === 'google' ? ' • ' : ' | ')}
+                </p>
               </div>
             )}
 
             {/* Sections */}
-            <div className="space-y-6">
+            <div className="space-y-8">
               {dataPayload.summary && (
                 <div>
-                  <h2 className={`text-[11px] font-black uppercase pb-1 mb-2 
+                  <h2 className={`text-[11px] font-black uppercase pb-1 mb-3 
                     ${selectedTemplate === 'modern' ? 'text-blue-600 border-b border-blue-100' : 
                       selectedTemplate === 'google' ? 'text-[#1a73e8] border-b border-gray-100 pb-2' :
                       selectedTemplate === 'consultant' ? 'text-black border-b border-black pb-1' :
@@ -597,7 +682,7 @@ const BuilderPage = ({ initialTemplate, onBack }) => {
 
               {dataPayload.experience.length > 0 && (
                 <div>
-                  <h2 className={`text-[11px] font-black uppercase pb-1 mb-3 
+                  <h2 className={`text-[11px] font-black uppercase pb-1 mb-4 
                     ${selectedTemplate === 'modern' ? 'text-blue-600 border-b border-blue-100' : 
                       selectedTemplate === 'google' ? 'text-[#1a73e8] border-b border-gray-100 pb-2' :
                       selectedTemplate === 'consultant' ? 'text-black border-b border-black pb-1' :
@@ -642,7 +727,7 @@ const BuilderPage = ({ initialTemplate, onBack }) => {
                     <div key={i} className="flex justify-between items-start mb-2">
                       <div>
                         <div className="font-bold text-black text-[10px]">{edu.institution}</div>
-                        <div className="text-[9px]">{edu.degree} in {edu.fieldOfStudy}</div>
+                        <div className="text-[9px]">{edu.degree} in {edu.fieldOfStudy} {edu.gpa && `| GPA: ${edu.gpa}`}</div>
                       </div>
                       <span className="text-[10px] text-gray-600">{edu.graduationYear}</span>
                     </div>
@@ -667,6 +752,46 @@ const BuilderPage = ({ initialTemplate, onBack }) => {
                   <p className="text-[10px] font-bold text-black">{dataPayload.skills.join(' • ')}</p>
                 </div>
               )}
+
+              {dataPayload.certifications.length > 0 && (
+                <div>
+                   <h2 className={`text-[11px] font-black uppercase pb-1 mb-2 
+                    ${selectedTemplate === 'modern' ? 'text-blue-600 border-b border-blue-100' : 
+                      selectedTemplate === 'google' ? 'text-[#1a73e8] border-b border-gray-100 pb-2' :
+                      selectedTemplate === 'consultant' ? 'text-black border-b border-black pb-1' :
+                      selectedTemplate === 'ivy' ? 'text-black border-b border-black pb-1 text-center' :
+                      selectedTemplate === 'creative' ? 'text-[#d97706] text-sm lowercase' :
+                      selectedTemplate === 'healthcare' ? 'text-[#0891b2] border-l-4 border-[#0891b2] pl-2' :
+                      selectedTemplate === 'sales' ? 'text-white bg-[#b91c1c] p-1 px-2' :
+                      selectedTemplate === 'executive' ? 'border-b border-t border-black py-1' : 
+                      selectedTemplate === 'minimal' ? 'text-gray-400 tracking-[0.3em]' : 'border-b border-black text-black'}`}>
+                    Certifications
+                  </h2>
+                  <ul className="list-disc pl-4 space-y-1">
+                    {dataPayload.certifications.map((c, i) => <li key={i} className="text-[10px] leading-tight">{c}</li>)}
+                  </ul>
+                </div>
+              )}
+
+              {dataPayload.achievements.length > 0 && (
+                <div>
+                   <h2 className={`text-[11px] font-black uppercase pb-1 mb-2 
+                    ${selectedTemplate === 'modern' ? 'text-blue-600 border-b border-blue-100' : 
+                      selectedTemplate === 'google' ? 'text-[#1a73e8] border-b border-gray-100 pb-2' :
+                      selectedTemplate === 'consultant' ? 'text-black border-b border-black pb-1' :
+                      selectedTemplate === 'ivy' ? 'text-black border-b border-black pb-1 text-center' :
+                      selectedTemplate === 'creative' ? 'text-[#d97706] text-sm lowercase' :
+                      selectedTemplate === 'healthcare' ? 'text-[#0891b2] border-l-4 border-[#0891b2] pl-2' :
+                      selectedTemplate === 'sales' ? 'text-white bg-[#b91c1c] p-1 px-2' :
+                      selectedTemplate === 'executive' ? 'border-b border-t border-black py-1' : 
+                      selectedTemplate === 'minimal' ? 'text-gray-400 tracking-[0.3em]' : 'border-b border-black text-black'}`}>
+                    Achievements
+                  </h2>
+                  <ul className="list-disc pl-4 space-y-1">
+                    {dataPayload.achievements.map((a, i) => <li key={i} className="text-[10px] leading-tight">{a}</li>)}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         </motion.div>
@@ -681,7 +806,7 @@ const BuilderPage = ({ initialTemplate, onBack }) => {
           <div className="flex flex-col sm:flex-row gap-4 w-full max-w-[210mm]">
             <PDFDownloadLink 
               document={<ResumePDF data={dataPayload} templateId={selectedTemplate} />} 
-              fileName={`${selectedTemplate}_ATS_Resume.pdf`}
+              fileName={`${dataPayload.personalInfo.fullName.replace(/\s+/g, '_') || 'Resume'}_${dataPayload.experience[0]?.jobTitle.replace(/\s+/g, '_') || 'Professional'}_ResuSolve.pdf`}
               className="flex-1 h-14 flex items-center justify-center gap-3 bg-gradient-to-t from-gray-900 via-gray-800 to-gray-700 text-white text-sm rounded-2xl shadow-xl font-black uppercase tracking-wider backdrop-blur-md transition-all group border border-white/10"
             >
               {({ loading }) => (

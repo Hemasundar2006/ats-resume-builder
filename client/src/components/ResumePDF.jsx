@@ -36,90 +36,90 @@ const getStyles = (templateId) => {
     sidebarText: { fontSize: 9, marginBottom: 4, opacity: 0.9 },
 
     // Headers
-    headerClassic: { marginBottom: 15, textAlign: 'left' },
-    headerExecutive: { marginBottom: 20, textAlign: 'center' },
-    headerModern: { marginBottom: 15, textAlign: 'left' },
-    headerMinimal: { marginBottom: 25, textAlign: 'left' },
-    headerGoogle: { marginBottom: 10, textAlign: 'left', borderBottomWidth: 1, borderBottomColor: '#eee', paddingBottom: 10 },
-    headerConsultant: { marginBottom: 20, textAlign: 'left' },
-    headerIvy: { marginBottom: 25, textAlign: 'center' },
-    headerCreative: { marginBottom: 20, textAlign: 'left' },
-    headerHealthcare: { marginBottom: 15, textAlign: 'left' },
-    headerSales: { marginBottom: 15, textAlign: 'left' },
+    headerClassic: { marginBottom: 25, textAlign: 'center' },
+    headerExecutive: { marginBottom: 25, textAlign: 'center' },
+    headerModern: { marginBottom: 20, textAlign: 'left' },
+    headerMinimal: { marginBottom: 30, textAlign: 'left' },
+    headerGoogle: { marginBottom: 15, textAlign: 'left', borderBottomWidth: 1, borderBottomColor: '#eee', paddingBottom: 12 },
+    headerConsultant: { marginBottom: 25, textAlign: 'left' },
+    headerIvy: { marginBottom: 30, textAlign: 'center' },
+    headerCreative: { marginBottom: 25, textAlign: 'left' },
+    headerHealthcare: { marginBottom: 20, textAlign: 'left' },
+    headerSales: { marginBottom: 20, textAlign: 'left' },
     
-    nameClassic: { fontSize: 24, fontWeight: 'bold', marginBottom: 2, color: color.primary },
-    nameExecutive: { fontSize: 20, fontWeight: 'bold', marginBottom: 6, textTransform: 'uppercase', color: color.primary },
-    nameModern: { fontSize: 26, fontWeight: 'bold', marginBottom: 2, color: color.primary },
-    nameSidebar: { fontSize: 20, fontWeight: 'bold', marginBottom: 10, color: '#ffffff' },
-    nameMinimal: { fontSize: 28, fontWeight: 'light', marginBottom: 5, color: '#000' },
-    nameGoogle: { fontSize: 22, fontWeight: 'bold', color: color.primary },
-    nameConsultant: { fontSize: 18, fontWeight: 'bold', textTransform: 'uppercase', color: color.primary },
-    nameIvy: { fontSize: 20, fontWeight: 'bold', textTransform: 'uppercase', color: '#000' },
-    nameCreative: { fontSize: 30, fontWeight: 'black', color: color.primary, letterSpacing: -1 },
-    nameHealthcare: { fontSize: 22, fontWeight: 'bold', color: color.primary },
-    nameSales: { fontSize: 24, fontWeight: 'black', textTransform: 'uppercase', color: color.primary },
+    nameClassic: { fontSize: 24, fontWeight: 'bold', marginBottom: 8, color: color.primary },
+    nameExecutive: { fontSize: 20, fontWeight: 'bold', marginBottom: 10, textTransform: 'uppercase', color: color.primary },
+    nameModern: { fontSize: 26, fontWeight: 'bold', marginBottom: 10, color: color.primary },
+    nameSidebar: { fontSize: 20, fontWeight: 'bold', marginBottom: 12, color: '#ffffff' },
+    nameMinimal: { fontSize: 28, fontWeight: 'light', marginBottom: 15, color: '#000' },
+    nameGoogle: { fontSize: 22, fontWeight: 'bold', color: color.primary, marginBottom: 5 },
+    nameConsultant: { fontSize: 18, fontWeight: 'bold', textTransform: 'uppercase', color: color.primary, marginBottom: 8 },
+    nameIvy: { fontSize: 20, fontWeight: 'bold', textTransform: 'uppercase', color: '#000', marginBottom: 10 },
+    nameCreative: { fontSize: 30, fontWeight: 'black', color: color.primary, letterSpacing: -1, marginBottom: 12 },
+    nameHealthcare: { fontSize: 22, fontWeight: 'bold', color: color.primary, marginBottom: 8 },
+    nameSales: { fontSize: 24, fontWeight: 'black', textTransform: 'uppercase', color: color.primary, marginBottom: 12 },
     
     subtitleModern: { fontSize: 12, color: '#666', marginBottom: 4 },
     subtitleMinimal: { fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: 1 },
     
-    contactClassic: { fontSize: 9, color: '#444' },
-    contactExecutive: { fontSize: 9, color: '#555', textAlign: 'center' },
-    contactModern: { fontSize: 9, color: '#666' },
+    contactClassic: { fontSize: 9, color: '#444', textAlign: 'center', lineHeight: 1.5 },
+    contactExecutive: { fontSize: 9, color: '#555', textAlign: 'center', lineHeight: 1.5 },
+    contactModern: { fontSize: 9, color: '#666', textAlign: 'left', lineHeight: 1.5 },
 
     summary: { marginBottom: 15, fontSize: 10 },
     
     sectionHeaderClassic: { 
-      fontSize: 12, fontWeight: 'bold', marginTop: 12, marginBottom: 8, 
+      fontSize: 12, fontWeight: 'bold', marginTop: 15, marginBottom: 10, 
       borderBottomWidth: 1.5, borderBottomColor: '#000', paddingBottom: 3, textTransform: 'uppercase' 
     },
     sectionHeaderExecutive: { 
-      fontSize: 11, fontWeight: 'bold', marginTop: 14, marginBottom: 10, 
+      fontSize: 11, fontWeight: 'bold', marginTop: 18, marginBottom: 12, 
       borderBottomWidth: 1, borderBottomColor: '#000', borderTopWidth: 1, borderTopColor: '#000',
       paddingVertical: 4, textTransform: 'uppercase', textAlign: 'left' 
     },
     sectionHeaderModern: { 
-      fontSize: 11, fontWeight: 'bold', marginTop: 12, marginBottom: 8, 
+      fontSize: 11, fontWeight: 'bold', marginTop: 15, marginBottom: 10, 
       color: color.primary, textTransform: 'uppercase', borderBottomWidth: 1, borderBottomColor: '#3b82f6', paddingBottom: 2
     },
     sectionHeaderSidebar: {
-      fontSize: 12, fontWeight: 'bold', marginBottom: 10, color: color.primary, textTransform: 'uppercase', borderBottomWidth: 1, borderBottomColor: color.primary, paddingBottom: 4
+      fontSize: 12, fontWeight: 'bold', marginBottom: 12, color: color.primary, textTransform: 'uppercase', borderBottomWidth: 1, borderBottomColor: color.primary, paddingBottom: 4
     },
     sectionHeaderMinimal: {
-      fontSize: 10, fontWeight: 'bold', marginTop: 15, marginBottom: 10, color: '#000', textTransform: 'uppercase', letterSpacing: 1
+      fontSize: 10, fontWeight: 'bold', marginTop: 20, marginBottom: 12, color: '#000', textTransform: 'uppercase', letterSpacing: 1
     },
     sectionHeaderGoogle: {
-      fontSize: 10, fontWeight: 'bold', marginTop: 12, marginBottom: 6, color: color.primary, textTransform: 'uppercase'
+      fontSize: 10, fontWeight: 'bold', marginTop: 15, marginBottom: 8, color: color.primary, textTransform: 'uppercase'
     },
     sectionHeaderConsultant: {
-      fontSize: 10, fontWeight: 'bold', marginTop: 12, marginBottom: 6, color: '#000', borderBottomWidth: 1, borderBottomColor: '#000', paddingBottom: 2
+      fontSize: 10, fontWeight: 'bold', marginTop: 15, marginBottom: 8, color: '#000', borderBottomWidth: 1, borderBottomColor: '#000', paddingBottom: 2
     },
     sectionHeaderIvy: {
-      fontSize: 11, fontWeight: 'bold', marginTop: 12, marginBottom: 8, color: '#000', borderBottomColor: '#000', borderBottomWidth: 1, paddingBottom: 2, textTransform: 'uppercase', textAlign: 'center'
+      fontSize: 11, fontWeight: 'bold', marginTop: 15, marginBottom: 10, color: '#000', borderBottomColor: '#000', borderBottomWidth: 1, paddingBottom: 2, textTransform: 'uppercase', textAlign: 'center'
     },
     sectionHeaderCreative: {
-      fontSize: 14, fontWeight: 'black', marginTop: 15, marginBottom: 10, color: color.primary, textTransform: 'lowercase'
+      fontSize: 14, fontWeight: 'black', marginTop: 20, marginBottom: 12, color: color.primary, textTransform: 'lowercase'
     },
     sectionHeaderHealthcare: {
-      fontSize: 11, fontWeight: 'bold', marginTop: 12, marginBottom: 6, color: color.primary, borderLeftWidth: 3, borderLeftColor: color.primary, paddingLeft: 6
+      fontSize: 11, fontWeight: 'bold', marginTop: 15, marginBottom: 8, color: color.primary, borderLeftWidth: 3, borderLeftColor: color.primary, paddingLeft: 6
     },
     sectionHeaderSales: {
-      fontSize: 12, fontWeight: 'black', marginTop: 15, marginBottom: 8, color: '#fff', backgroundColor: color.primary, padding: 4, textTransform: 'uppercase'
+      fontSize: 12, fontWeight: 'black', marginTop: 20, marginBottom: 10, color: '#fff', backgroundColor: color.primary, padding: 4, textTransform: 'uppercase'
     },
 
     // Layout blocks
-    itemGroup: { marginBottom: 12 },
-    row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
+    itemGroup: { marginBottom: 15 },
+    row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
     leftCol: { flex: 1, paddingRight: 15 },
     
     boldText: { fontWeight: 'bold' },
     italicText: { fontStyle: 'italic', color: '#444' },
     dateText: { fontSize: 9, color: '#555', flexShrink: 0 },
     
-    bullet: { flexDirection: 'row', marginBottom: 3, paddingLeft: templateId === 'sidebar' ? 0 : 12 },
+    bullet: { flexDirection: 'row', marginBottom: 4, paddingLeft: templateId === 'sidebar' ? 0 : 12 },
     bulletPoint: { width: 10, fontSize: 10 },
-    bulletText: { flex: 1, fontSize: 10 },
+    bulletText: { flex: 1, fontSize: 10, lineHeight: 1.3 },
 
-    skillsBlock: { marginTop: 4 }
+    skillsBlock: { marginTop: 10 }
   });
 };
 
@@ -131,9 +131,9 @@ export const ResumePDF = ({ data, templateId = 'classic' }) => {
   const contacts = [
     data.personalInfo.email,
     data.personalInfo.phone,
-    data.personalInfo.linkedin,
-    data.personalInfo.github,
-    data.personalInfo.portfolio
+    data.personalInfo.linkedin ? data.personalInfo.linkedin.replace(/^(https?:\/\/)?(www\.)?/, '') : null,
+    data.personalInfo.github ? data.personalInfo.github.replace(/^(https?:\/\/)?(www\.)?/, '') : null,
+    data.personalInfo.portfolio ? data.personalInfo.portfolio.replace(/^(https?:\/\/)?(www\.)?/, '') : null
   ].filter(Boolean);
 
   const contactString = contacts.join(templateId === 'modern' ? ' • ' : ' | ');
@@ -207,7 +207,32 @@ export const ResumePDF = ({ data, templateId = 'classic' }) => {
                 <Text style={styles.boldText}>{edu.institution}</Text>
                 <Text style={styles.dateText}>{edu.graduationYear}</Text>
               </View>
-              <Text>{edu.degree} {edu.fieldOfStudy && `in ${edu.fieldOfStudy}`}</Text>
+              <Text>{edu.degree} {edu.fieldOfStudy && `in ${edu.fieldOfStudy}`} {edu.gpa && `| GPA: ${edu.gpa}`}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+      {/* Certifications */}
+      {data.certifications && data.certifications.length > 0 && (
+        <View>
+          {renderSectionHeader('CERTIFICATIONS')}
+          {data.certifications.map((cert, i) => (
+            <View key={i} style={styles.bullet}>
+              <Text style={styles.bulletPoint}>•</Text>
+              <Text style={styles.bulletText}>{cert}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Achievements */}
+      {data.achievements && data.achievements.length > 0 && (
+        <View>
+          {renderSectionHeader('ACHIEVEMENTS')}
+          {data.achievements.map((ach, i) => (
+            <View key={i} style={styles.bullet}>
+              <Text style={styles.bulletPoint}>•</Text>
+              <Text style={styles.bulletText}>{ach}</Text>
             </View>
           ))}
         </View>
