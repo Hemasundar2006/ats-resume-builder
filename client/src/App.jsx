@@ -8,6 +8,8 @@ import { toPng } from 'html-to-image';
 import download from 'downloadjs';
 import { useRef } from 'react';
 
+axios.defaults.baseURL = 'https://ats-resume-builder-7xio.onrender.com';
+
 // --- Landing Page Component ---
 const LandingPage = ({ onStart }) => {
   return (
