@@ -7,6 +7,7 @@ import { ResumePDF } from './components/ResumePDF';
 import { toPng } from 'html-to-image';
 import download from 'downloadjs';
 import { useRef } from 'react';
+import { Analytics } from "@vercel/analytics/react";
 
 axios.defaults.baseURL = 'https://ats-resume-builder-7xio.onrender.com';
 
@@ -127,12 +128,12 @@ const TemplateGallery = ({ onSelect, onBack }) => {
         className="max-w-7xl mx-auto text-center mb-16"
       >
         <span className="text-[#ccff00] font-black uppercase tracking-[0.3em] text-xs">Step 1: Choose Your Style</span>
-        <h2 className="text-5xl md:text-7xl font-black text-white mt-4 mb-6 tracking-tighter">
+        <h1 className="text-5xl md:text-7xl font-black text-white mt-4 mb-6 tracking-tighter">
           Select Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ccff00] to-[#00ffaa]">Foundation</span>
-        </h2>
-        <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+        </h1>
+        <h2 className="text-gray-400 text-lg max-w-2xl mx-auto">
           Every template is engineered to bypass ATS filters and wow human recruiters. Select a design to start building.
-        </p>
+        </h2>
       </motion.div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 max-w-7xl mx-auto">
@@ -839,28 +840,31 @@ export default function App() {
   const [selectedTemplate, setSelectedTemplate] = useState('classic');
 
   return (
-    <AnimatePresence mode="wait">
-      {appState === 'landing' && (
-        <motion.div key="landing" exit={{ opacity: 0, scale: 1.1, filter: "blur(10px)" }} transition={{ duration: 0.5 }}>
-          <LandingPage onStart={() => setAppState('selection')} />
-        </motion.div>
-      )}
-      {appState === 'selection' && (
-        <motion.div key="selection" initial={{ opacity: 0, x: 100 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -100 }}>
-          <TemplateGallery 
-            onSelect={(id) => { setSelectedTemplate(id); setAppState('builder'); }} 
-            onBack={() => setAppState('landing')}
-          />
-        </motion.div>
-      )}
-      {appState === 'builder' && (
-        <motion.div key="builder" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}>
-          <BuilderPage 
-            initialTemplate={selectedTemplate} 
-            onBack={() => setAppState('selection')}
-          />
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <>
+      <Analytics />
+      <AnimatePresence mode="wait">
+        {appState === 'landing' && (
+          <motion.div key="landing" exit={{ opacity: 0, scale: 1.1, filter: "blur(10px)" }} transition={{ duration: 0.5 }}>
+            <LandingPage onStart={() => setAppState('selection')} />
+          </motion.div>
+        )}
+        {appState === 'selection' && (
+          <motion.div key="selection" initial={{ opacity: 0, x: 100 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -100 }}>
+            <TemplateGallery 
+              onSelect={(id) => { setSelectedTemplate(id); setAppState('builder'); }} 
+              onBack={() => setAppState('landing')}
+            />
+          </motion.div>
+        )}
+        {appState === 'builder' && (
+          <motion.div key="builder" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}>
+            <BuilderPage 
+              initialTemplate={selectedTemplate} 
+              onBack={() => setAppState('selection')}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

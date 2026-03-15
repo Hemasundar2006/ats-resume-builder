@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://resusolve.vercel.app/sitemap.xml
