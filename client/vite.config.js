@@ -7,5 +7,15 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 3000,
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-pdf': ['@react-pdf/renderer'],
+          'vendor-ui': ['framer-motion', 'lucide-react', 'axios'],
+        }
+      }
+    }
   }
 })
