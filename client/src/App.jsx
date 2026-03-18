@@ -10,7 +10,7 @@ import { useRef, useEffect } from 'react';
 import { Analytics } from "@vercel/analytics/react";
 
 axios.defaults.baseURL = 'https://ats-resume-builder-7xio.onrender.com';
-const AI_SERVICE_URL = 'http://localhost:8000';
+const AI_SERVICE_URL = 'https://ats-resume-builder-1-gy6o.onrender.com';
 
 const TEMPLATES = [
   { id: 'classic', name: 'Classic ATS', desc: 'Standard serif, high parseability', image: 'template_classic_ats_1773575577224.png' },
