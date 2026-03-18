@@ -15,9 +15,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ----------------- Step 1: spaCy Model Loading -----------------
-MODEL_NAME = "en_core_web_sm-3.7.1-py3-none-any.whl" # Fixed to the registered name of your local model
+# The local wheel file installs the model with the name "en_core_web_sm"
+MODEL_NAME = "en_core_web_sm" 
 
-# We assume the model is already installed via the .whl as per your prompt.
+# We assume the model is already installed via 'pip install ./*.whl'
 nlp = spacy.load(MODEL_NAME)
 
 # ----------------- Step 2: FastAPI Setup -----------------
