@@ -322,6 +322,28 @@ const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
 
   const [selectedTemplate, setSelectedTemplate] = useState(initialData?.selectedTemplate || initialTemplate || 'classic');
   const [showMobilePreview, setShowMobilePreview] = useState(false);
+  const [isRefining, setIsRefining] = useState(false);
+
+  const handleRefineSummary = async () => {
+    if (!summary.trim()) return;
+    setIsRefining(true);
+    try {
+      // Calling the local Python AI service directamente
+      const response = await axios.post(`${AI_SERVICE_URL}/api/v1/refine-summary`, {
+        summary,
+        target_role: experience[0]?.jobTitle || "Professional"
+      });
+      
+      if (response.data.refined_summary) {
+        setSummary(response.data.refined_summary);
+      }
+    } catch (err) {
+      console.error('Refinement failed:', err);
+      alert('AI Refinement failed. Please ensure the Python AI service is running at ' + AI_SERVICE_URL);
+    } finally {
+      setIsRefining(false);
+    }
+  };
 
 
   const handleArrayChange = (setter, array, index, field, value) => {
@@ -459,9 +481,33 @@ const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
               {/* 2. SUMMARY */}
               {activeTab === 'summary' && (
                 <div>
-                  <h2 className="text-2xl font-black mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-indigo-200">Professional Summary</h2>
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-indigo-200">Professional Summary</h2>
+                    <motion.button 
+                      whileHover={{ scale: 1.05 }} 
+                      whileTap={{ scale: 0.95 }} 
+                      onClick={handleRefineSummary}
+                      disabled={isRefining || !summary.trim()}
+                      className={`flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-xl transition-all ${
+                        isRefining 
+                        ? 'bg-gray-700 text-gray-400 cursor-not-allowed' 
+                        : 'bg-gradient-to-r from-[#ccff00] to-[#00ffcc] text-black shadow-[0_0_20px_rgba(204,255,0,0.3)] hover:shadow-[0_0_30px_rgba(204,255,0,0.5)]'
+                      }`}
+                    >
+                      {isRefining ? <span className="animate-spin"><Zap size={16}/></span> : <Sparkles size={16} />}
+                      {isRefining ? "Refining..." : "Refine with AI"}
+                    </motion.button>
+                  </div>
                   <label className={labelStyle}>Write your pitch</label>
-                  <textarea placeholder="Craft a compelling summary..." rows="8" maxLength="1000" className={inputStyle} value={summary} onChange={(e) => setSummary(e.target.value)} />
+                  <textarea 
+                    placeholder="Craft a compelling summary..." 
+                    rows="8" 
+                    maxLength="1000" 
+                    className={`${inputStyle} ${isRefining ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                    value={summary} 
+                    onChange={(e) => setSummary(e.target.value)} 
+                    disabled={isRefining}
+                  />
                   <p className="text-right text-xs text-gray-400 mt-2 font-mono">{summary.length} / 1000</p>
                 </div>
               )}

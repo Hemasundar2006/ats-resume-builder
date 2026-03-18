@@ -46,6 +46,10 @@ class ScoreRequest(BaseModel):
     resume_text: str
     job_description: str
 
+class RefineRequest(BaseModel):
+    summary: str
+    target_role: Optional[str] = "Professional"
+
 def extract_text_from_pdf(file_bytes):
     try:
         with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
@@ -454,6 +458,66 @@ def score_resume(req: ScoreRequest):
         "matched_keywords": list(matched_keywords),
         "missing_keywords": list(missing_keywords)
     }
+
+@app.post("/api/v1/refine-summary")
+async def refine_summary(req: RefineRequest):
+    if not req.summary.strip():
+        raise HTTPException(status_code=400, detail="Summary cannot be empty")
+    
+    # Use spaCy for local rule-based refinement
+    doc = nlp(req.summary)
+    
+    # Action verbs mapping for ATS optimization
+    action_verbs = {
+        "led": "Spearheaded",
+        "did": "Executed",
+        "handled": "Orchestrated",
+        "managed": "Architected",
+        "made": "Engineered",
+        "worked": "Collaborated",
+        "helped": "Facilitated",
+        "started": "Initiated",
+        "improved": "Optimized",
+        "changed": "Transformed",
+        "found": "Identified",
+        "used": "Leveraged",
+        "showed": "Demonstrated",
+        "gave": "Delivered",
+        "fixed": "Resolved",
+        "built": "Developed",
+        "created": "Pioneered",
+        "increased": "Amplified",
+        "reduced": "Mitigated",
+        "saved": "Economized"
+    }
+
+    words = []
+    target_role = req.target_role or "Professional"
+    
+    for token in doc:
+        text = token.text
+        if token.pos_ == "VERB" and text.lower() in action_verbs:
+            if token.i == 0 or doc[token.i-1].is_punct:
+                text = action_verbs[text.lower()]
+            else:
+                text = action_verbs[text.lower()].lower()
+        words.append(text + token.whitespace_)
+
+    refined_text = "".join(words).strip()
+    
+    # Sentence-level improvements
+    refined_text = re.sub(r'^(?i)i am a\s+', f"Highly motivated {target_role} with ", refined_text)
+    refined_text = re.sub(r'^(?i)i have\s+', "Possessing ", refined_text)
+    
+    if refined_text:
+        refined_text = refined_text[0].upper() + refined_text[1:]
+        if not refined_text.endswith('.'):
+            refined_text += '.'
+
+    if target_role.lower() not in refined_text.lower() and len(refined_text) < 500:
+        refined_text = f"Result-oriented {target_role} specializing in " + refined_text[0].lower() + refined_text[1:]
+
+    return {"refined_summary": refined_text, "status": "locally-refined"}
 
 if __name__ == "__main__":
     import uvicorn
