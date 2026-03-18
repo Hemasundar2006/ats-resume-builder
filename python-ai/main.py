@@ -8,6 +8,11 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
+import google.generativeai as genai
+from dotenv import load_dotenv
+
+# Initialize environment
+load_dotenv()
 
 # ----------------- Step 1: spaCy Model Loading -----------------
 MODEL_NAME = "en_core_web_sm" # Fixed to the registered name of your local model
@@ -40,6 +45,15 @@ app.add_middleware(
 class ScoreRequest(BaseModel):
     resume_text: str
     job_description: str
+
+# --- Gemini AI Configuration ---
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+else:
+    gemini_model = None
+    print("WARNING: GEMINI_API_KEY not found. Falling back to local NLP refinement.")
 
 class RefineRequest(BaseModel):
     summary: str
@@ -460,10 +474,46 @@ async def refine_summary(req: RefineRequest):
     if not req.summary.strip():
         raise HTTPException(status_code=400, detail="Summary cannot be empty")
     
-    doc = nlp(req.summary)
     target_role = req.target_role or "Professional"
     
-    # 1. Expanded Action Verb Dictionary (ATS Power Words)
+    # 1. OPTION A: If Gemini API Key exists, use it for best results
+    if gemini_model:
+        try:
+            prompt = f"""
+            Task: Refine the following professional summary for an ATS-friendly resume.
+            Target Role: {target_role}
+            Refinement Mode: {req.format} (balanced/impactful/concise/technical)
+            
+            Guidelines:
+            - Use strong action verbs.
+            - Focus on quantifiable achievements if possible.
+            - Ensure high keyword density for the role.
+            - Keep it professional and remove first-person pronouns (I, my, me).
+            - Return ONLY the refined summary text.
+            
+            Original Summary: "{req.summary}"
+            
+            Refined Summary:
+            """
+            
+            response = gemini_model.generate_content(prompt)
+            refined_text = response.text.strip()
+            
+            # Clean possible markdown or quote wrapping
+            refined_text = re.sub(r'^["\']|["\']$', '', refined_text)
+            
+            return {
+                "refined_summary": refined_text,
+                "format_used": req.format,
+                "status": "refined-by-gemini"
+            }
+        except Exception as e:
+            print(f"Gemini API Error: {e}. Falling back to local NLP.")
+    
+    # 2. OPTION B: Fallback to local spaCy rule-based refinement
+    doc = nlp(req.summary)
+    
+    # Expanded Action Verb Dictionary (ATS Power Words)
     ats_verbs = {
         "led": ["Spearheaded", "Directed", "Guided", "Orchestrated"],
         "did": ["Executed", "Performed", "Handled", "Implemented"],
@@ -492,9 +542,8 @@ async def refine_summary(req: RefineRequest):
         text = token.text
         if token.pos_ == "VERB" and text.lower() in ats_verbs:
             choices = ats_verbs[text.lower()]
-            # Pick a verb based on format preference or random for variety
             if req.format == "impactful":
-                chosen = choices[0] # Usually the strongest
+                chosen = choices[0]
             elif req.format == "technical":
                 technical_choices = [c for c in choices if c in ["Engineered", "Developed", "Optimized", "Debugged", "Architected", "Implemented", "Leveraged"]]
                 chosen = technical_choices[0] if technical_choices else choices[0]
@@ -509,33 +558,27 @@ async def refine_summary(req: RefineRequest):
 
     refined_text = "".join(words).strip()
     
-    # 2. Structural Formatting based on Mode
+    # Structural Formatting based on Mode
     if req.format == "concise":
-        # Keep it short, remove fluff
         refined_text = re.sub(r'^(?i)(highly motivated|result-driven|possessing)\s+\w+\s+', "", refined_text)
         if len(refined_text) > 300:
             refined_text = refined_text[:300] + "..."
     elif req.format == "technical":
-        # Ensure role-specific tech marker
         if "specializing in" not in refined_text.lower():
             refined_text = f"{target_role} with expertise in " + refined_text[0].lower() + refined_text[1:]
     else: # balanced / impactful
         refined_text = re.sub(r'^(?i)i am a\s+', f"Highly motivated {target_role} with ", refined_text)
         refined_text = re.sub(r'^(?i)i have\s+', "Possessing ", refined_text)
         
-    # Final cleanup
     if refined_text:
         refined_text = refined_text[0].upper() + refined_text[1:]
         if not refined_text.endswith('.'):
             refined_text += '.'
 
-    if len(refined_text) < 50: # Too short fallback
-        refined_text = f"Accomplished {target_role} dedicated to excellence and continuous improvement."
-
     return {
         "refined_summary": refined_text, 
         "format_used": req.format,
-        "status": "locally-refined-ats"
+        "status": "refined-locally-fallback"
     }
 
 if __name__ == "__main__":
