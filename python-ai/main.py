@@ -8,11 +8,21 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
-import google.generativeai as genai
-from dotenv import load_dotenv
+import requests
+import json
+import random
 
-# Initialize environment
-load_dotenv()
+# Initialize environment with hybrid loading
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    if os.path.exists(".env"):
+        with open(".env") as f:
+            for line in f:
+                if "=" in line and not line.startswith("#"):
+                    name, value = line.strip().split("=", 1)
+                    os.environ[name] = value
 
 # ----------------- Step 1: spaCy Model Loading -----------------
 # The local wheel file installs the model with the name "en_core_web_sm"
@@ -47,14 +57,31 @@ class ScoreRequest(BaseModel):
     resume_text: str
     job_description: str
 
-# --- Gemini AI Configuration ---
+# --- Gemini AI Configuration (REST API approach for stability) ---
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-    gemini_model = genai.GenerativeModel('gemini-1.5-flash')
-else:
-    gemini_model = None
-    print("WARNING: GEMINI_API_KEY not found. Falling back to local NLP refinement.")
+
+def call_gemini_api(prompt):
+    """Direct REST call to Gemini 1.5 Flash to bypass broken library installations"""
+    if not GEMINI_API_KEY:
+        print("WARNING: GEMINI_API_KEY not found in .env")
+        return None
+    
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    headers = {'Content-Type': 'application/json'}
+    payload = {
+        "contents": [{
+            "parts": [{"text": prompt}]
+        }]
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=20)
+        response.raise_for_status()
+        data = response.json()
+        return data['candidates'][0]['content']['parts'][0]['text']
+    except Exception as e:
+        print(f"Gemini API Error: {e}")
+        return None
 
 class RefineRequest(BaseModel):
     summary: str
@@ -306,6 +333,39 @@ async def extract_resume(file: UploadFile = File(...)):
         sections["summary"] = sections["summary"].strip()
         return sections
 
+    # --- Step 5: Advanced Gemini Extraction (AI Understanding) ---
+    if GEMINI_API_KEY:
+        try:
+            extraction_prompt = f"""
+            Task: Extract all information from this resume text into a structured JSON object.
+            Candidate: {name}
+            
+            Format:
+            {{
+              "personalInfo": {{ "fullName": "", "email": "", "phone": "", "linkedin": "", "github": "", "portfolio": "" }},
+              "summary": "...",
+              "experience": [{{ "company": "", "jobTitle": "", "startDate": "", "endDate": "", "description": [] }}],
+              "education": [{{ "institution": "", "degree": "", "fieldOfStudy": "", "graduationYear": "", "gpa": "" }}],
+              "skills": [],
+              "projects": [{{ "title": "", "technologies": [], "description": [], "link": "" }}],
+              "certifications": [],
+              "achievements": [],
+              "selectedTemplate": "{template}"
+            }}
+            
+            Text:
+            "{raw_text}"
+            """
+            
+            ai_data_raw = call_gemini_api(extraction_prompt)
+            if ai_data_raw:
+                # Clean markdown and parse
+                json_str = re.sub(r'```[a-z]*\n|```', '', ai_data_raw).strip()
+                structured_data = json.loads(json_str)
+                return structured_data
+        except Exception as e:
+            print(f"AI Extraction failed, using heuristics: {e}")
+
     sections = enhanced_extract_sections(raw_text, name, contact)
     
     # Template Selection
@@ -478,38 +538,28 @@ async def refine_summary(req: RefineRequest):
     target_role = req.target_role or "Professional"
     
     # 1. OPTION A: If Gemini API Key exists, use it for best results
-    if gemini_model:
+    if GEMINI_API_KEY:
         try:
             prompt = f"""
-            Task: Refine the following professional summary for an ATS-friendly resume.
-            Target Role: {target_role}
-            Refinement Mode: {req.format} (balanced/impactful/concise/technical)
+            Task: Refine this professional summary to be ATS-friendly.
+            Role: {target_role}
+            Mode: {req.format}
             
-            Guidelines:
-            - Use strong action verbs.
-            - Focus on quantifiable achievements if possible.
-            - Ensure high keyword density for the role.
-            - Keep it professional and remove first-person pronouns (I, my, me).
-            - Return ONLY the refined summary text.
+            Rules:
+            - Professional tone, no first-person pronouns.
+            - High impact verbs.
+            - Focus on keywords for {target_role}.
+            - Return ONLY the refined text.
             
-            Original Summary: "{req.summary}"
-            
-            Refined Summary:
+            Text: "{req.summary}"
             """
             
-            response = gemini_model.generate_content(prompt)
-            refined_text = response.text.strip()
-            
-            # Clean possible markdown or quote wrapping
-            refined_text = re.sub(r'^["\']|["\']$', '', refined_text)
-            
-            return {
-                "refined_summary": refined_text,
-                "format_used": req.format,
-                "status": "refined-by-gemini"
-            }
+            refined_text = call_gemini_api(prompt)
+            if refined_text:
+                refined_text = re.sub(r'```[a-z]*|```|^["\']|["\']$', '', refined_text).strip()
+                return {"refined_summary": refined_text, "format_used": req.format, "status": "refined-by-gemini"}
         except Exception as e:
-            print(f"Gemini API Error: {e}. Falling back to local NLP.")
+            print(f"Gemini Refine Error: {e}. Falling back.")
     
     # 2. OPTION B: Fallback to local spaCy rule-based refinement
     doc = nlp(req.summary)
