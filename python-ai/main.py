@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 # ----------------- Step 1: spaCy Model Loading -----------------
-MODEL_NAME = "en_core_web_sm"
+MODEL_NAME = "en_core_web_sm-3.7.1-py3-none-any.whl"
 
 try:
     nlp = spacy.load(MODEL_NAME)
