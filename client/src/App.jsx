@@ -10,7 +10,7 @@ import { useRef, useEffect } from 'react';
 import { Analytics } from "@vercel/analytics/react";
 
 axios.defaults.baseURL = 'https://ats-resume-builder-7xio.onrender.com';
-const AI_SERVICE_URL = 'https://ats-resume-builder-1-gy6o.onrender.com';
+const AI_SERVICE_URL = 'http://localhost:8000';
 
 const TEMPLATES = [
   { id: 'classic', name: 'Classic ATS', desc: 'Standard serif, high parseability', image: 'template_classic_ats_1773575577224.png' },
@@ -294,9 +294,27 @@ const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
   // Schema States
   const [personalInfo, setPersonalInfo] = useState(initialData?.personalInfo || { fullName: '', email: '', phone: '', linkedin: '', github: '', portfolio: '' });
   const [summary, setSummary] = useState(initialData?.summary || '');
-  const [experience, setExperience] = useState(initialData?.experience || [{ company: '', jobTitle: '', startDate: '', endDate: '', description: '' }]);
+  
+  // Normalize array-based descriptions to newline strings for the UI
+  const [experience, setExperience] = useState(() => {
+    if (!initialData?.experience) return [{ company: '', jobTitle: '', startDate: '', endDate: '', description: '' }];
+    return initialData.experience.map(exp => ({
+      ...exp,
+      description: Array.isArray(exp.description) ? exp.description.join('\n') : (exp.description || '')
+    }));
+  });
+
   const [education, setEducation] = useState(initialData?.education || [{ institution: '', degree: '', fieldOfStudy: '', graduationYear: '', gpa: '' }]);
-  const [projects, setProjects] = useState(initialData?.projects || [{ title: '', technologies: '', description: '', link: '' }]);
+  
+  const [projects, setProjects] = useState(() => {
+    if (!initialData?.projects) return [{ title: '', technologies: '', description: '', link: '' }];
+    return initialData.projects.map(proj => ({
+      ...proj,
+      technologies: Array.isArray(proj.technologies) ? proj.technologies.join(', ') : (proj.technologies || ''),
+      description: Array.isArray(proj.description) ? proj.description.join('\n') : (proj.description || '')
+    }));
+  });
+
   const [skills, setSkills] = useState(initialData?.skills || []);
   const [skillInput, setSkillInput] = useState('');
   const [certifications, setCertifications] = useState(initialData?.certifications || ['']);
@@ -331,13 +349,19 @@ const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
       summary,
       experience: experience.filter(e => e.company || e.jobTitle).map(e => ({
         ...e,
-        description: e.description ? e.description.split('\n').filter(l => l.trim().length > 0) : []
+        description: typeof e.description === 'string' 
+          ? e.description.split('\n').filter(l => l.trim().length > 0) 
+          : (Array.isArray(e.description) ? e.description : [])
       })),
       education: education.filter(e => e.institution || e.degree),
       projects: projects.filter(p => p.title).map(p => ({
         ...p,
-        technologies: p.technologies ? p.technologies.split(',').map(t => t.trim()).filter(Boolean) : [],
-        description: p.description ? p.description.split('\n').filter(l => l.trim().length > 0) : []
+        technologies: typeof p.technologies === 'string'
+          ? p.technologies.split(',').map(t => t.trim()).filter(Boolean)
+          : (Array.isArray(p.technologies) ? p.technologies : []),
+        description: typeof p.description === 'string' 
+          ? p.description.split('\n').filter(l => l.trim().length > 0)
+          : (Array.isArray(p.description) ? p.description : [])
       })),
       skills,
       certifications: certifications.filter(c => c.trim().length > 0),
