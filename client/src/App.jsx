@@ -323,6 +323,7 @@ const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
   const [selectedTemplate, setSelectedTemplate] = useState(initialData?.selectedTemplate || initialTemplate || 'classic');
   const [showMobilePreview, setShowMobilePreview] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
+  const [refineFormat, setRefineFormat] = useState('balanced');
 
   const handleRefineSummary = async () => {
     if (!summary.trim()) return;
@@ -331,7 +332,8 @@ const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
       // Calling the local Python AI service directamente
       const response = await axios.post(`${AI_SERVICE_URL}/api/v1/refine-summary`, {
         summary,
-        target_role: experience[0]?.jobTitle || "Professional"
+        target_role: experience[0]?.jobTitle || "Professional",
+        format: refineFormat
       });
       
       if (response.data.refined_summary) {
@@ -481,22 +483,34 @@ const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
               {/* 2. SUMMARY */}
               {activeTab === 'summary' && (
                 <div>
-                  <div className="flex justify-between items-center mb-6">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                     <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-indigo-200">Professional Summary</h2>
-                    <motion.button 
-                      whileHover={{ scale: 1.05 }} 
-                      whileTap={{ scale: 0.95 }} 
-                      onClick={handleRefineSummary}
-                      disabled={isRefining || !summary.trim()}
-                      className={`flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-xl transition-all ${
-                        isRefining 
-                        ? 'bg-gray-700 text-gray-400 cursor-not-allowed' 
-                        : 'bg-gradient-to-r from-[#ccff00] to-[#00ffcc] text-black shadow-[0_0_20px_rgba(204,255,0,0.3)] hover:shadow-[0_0_30px_rgba(204,255,0,0.5)]'
-                      }`}
-                    >
-                      {isRefining ? <span className="animate-spin"><Zap size={16}/></span> : <Sparkles size={16} />}
-                      {isRefining ? "Refining..." : "Refine with AI"}
-                    </motion.button>
+                    <div className="flex items-center gap-2 bg-gray-900/40 p-1.5 rounded-2xl border border-white/5 shadow-inner">
+                      <select 
+                        value={refineFormat} 
+                        onChange={(e) => setRefineFormat(e.target.value)}
+                        className="bg-transparent text-[10px] font-black uppercase tracking-widest text-[#ccff00] outline-none cursor-pointer px-2"
+                      >
+                        <option value="balanced" className="bg-black">Balanced</option>
+                        <option value="impactful" className="bg-black">Impactful</option>
+                        <option value="concise" className="bg-black">Concise</option>
+                        <option value="technical" className="bg-black">Technical</option>
+                      </select>
+                      <motion.button 
+                        whileHover={{ scale: 1.05 }} 
+                        whileTap={{ scale: 0.95 }} 
+                        onClick={handleRefineSummary}
+                        disabled={isRefining || !summary.trim()}
+                        className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all ${
+                          isRefining 
+                          ? 'bg-gray-700 text-gray-400 cursor-not-allowed' 
+                          : 'bg-gradient-to-r from-[#ccff00] to-[#00ffcc] text-black shadow-[0_0_20px_rgba(204,255,0,0.3)]'
+                        }`}
+                      >
+                        {isRefining ? <span className="animate-spin"><Zap size={14}/></span> : <Sparkles size={14} />}
+                        {isRefining ? "Refining..." : "Refine"}
+                      </motion.button>
+                    </div>
                   </div>
                   <label className={labelStyle}>Write your pitch</label>
                   <textarea 

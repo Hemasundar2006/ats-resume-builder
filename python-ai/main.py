@@ -10,15 +10,10 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 # ----------------- Step 1: spaCy Model Loading -----------------
-MODEL_NAME = "en_core_web_sm-3.7.1-py3-none-any.whl"
+MODEL_NAME = "en_core_web_sm" # Fixed to the registered name of your local model
 
-try:
-    nlp = spacy.load(MODEL_NAME)
-except OSError:
-    print(f"Downloading spaCy model '{MODEL_NAME}'...")
-    from spacy.cli import download
-    download(MODEL_NAME)
-    nlp = spacy.load(MODEL_NAME)
+# We assume the model is already installed via the .whl as per your prompt.
+nlp = spacy.load(MODEL_NAME)
 
 # ----------------- Step 2: FastAPI Setup -----------------
 app = FastAPI(title="ATS Resume Builder - AI Service")
@@ -49,6 +44,7 @@ class ScoreRequest(BaseModel):
 class RefineRequest(BaseModel):
     summary: str
     target_role: Optional[str] = "Professional"
+    format: Optional[str] = "balanced" # Options: balanced, impactful, concise, technical
 
 def extract_text_from_pdf(file_bytes):
     try:
@@ -464,60 +460,83 @@ async def refine_summary(req: RefineRequest):
     if not req.summary.strip():
         raise HTTPException(status_code=400, detail="Summary cannot be empty")
     
-    # Use spaCy for local rule-based refinement
     doc = nlp(req.summary)
+    target_role = req.target_role or "Professional"
     
-    # Action verbs mapping for ATS optimization
-    action_verbs = {
-        "led": "Spearheaded",
-        "did": "Executed",
-        "handled": "Orchestrated",
-        "managed": "Architected",
-        "made": "Engineered",
-        "worked": "Collaborated",
-        "helped": "Facilitated",
-        "started": "Initiated",
-        "improved": "Optimized",
-        "changed": "Transformed",
-        "found": "Identified",
-        "used": "Leveraged",
-        "showed": "Demonstrated",
-        "gave": "Delivered",
-        "fixed": "Resolved",
-        "built": "Developed",
-        "created": "Pioneered",
-        "increased": "Amplified",
-        "reduced": "Mitigated",
-        "saved": "Economized"
+    # 1. Expanded Action Verb Dictionary (ATS Power Words)
+    ats_verbs = {
+        "led": ["Spearheaded", "Directed", "Guided", "Orchestrated"],
+        "did": ["Executed", "Performed", "Handled", "Implemented"],
+        "managed": ["Architected", "Administered", "Governed", "Supervised"],
+        "made": ["Engineered", "Developed", "Pioneered", "Constructed"],
+        "worked": ["Collaborated", "Contributed", "Partnered", "Engaged"],
+        "helped": ["Facilitated", "Empowered", "Supported", "Assisted"],
+        "started": ["Initiated", "Launched", "Conceptualized", "Inaugurated"],
+        "improved": ["Optimized", "Enhanced", "Refined", "Streamlined"],
+        "changed": ["Transformed", "Revolutionized", "Renovated", "Revamped"],
+        "found": ["Identified", "Detected", "Uncovered", "Discovered"],
+        "used": ["Leveraged", "Utilized", "Deployed", "Harnessed"],
+        "showed": ["Demonstrated", "Exhibited", "Illustrated", "Presented"],
+        "gave": ["Delivered", "Produced", "Provided", "Yielded"],
+        "fixed": ["Resolved", "Troubleshot", "Debugged", "Rectified"],
+        "built": ["Built", "Forged", "Crafted", "Established"],
+        "increased": ["Amplified", "Maximized", "Boosted", "Accelerated"],
+        "reduced": ["Mitigated", "Minimized", "Curtailed", "Decreased"],
+        "saved": ["Economized", "Conserved", "Recovered", "Retained"]
     }
 
     words = []
-    target_role = req.target_role or "Professional"
+    import random
     
     for token in doc:
         text = token.text
-        if token.pos_ == "VERB" and text.lower() in action_verbs:
-            if token.i == 0 or doc[token.i-1].is_punct:
-                text = action_verbs[text.lower()]
+        if token.pos_ == "VERB" and text.lower() in ats_verbs:
+            choices = ats_verbs[text.lower()]
+            # Pick a verb based on format preference or random for variety
+            if req.format == "impactful":
+                chosen = choices[0] # Usually the strongest
+            elif req.format == "technical":
+                technical_choices = [c for c in choices if c in ["Engineered", "Developed", "Optimized", "Debugged", "Architected", "Implemented", "Leveraged"]]
+                chosen = technical_choices[0] if technical_choices else choices[0]
             else:
-                text = action_verbs[text.lower()].lower()
+                chosen = random.choice(choices)
+                
+            if token.i == 0 or doc[token.i-1].is_punct:
+                text = chosen
+            else:
+                text = chosen.lower()
         words.append(text + token.whitespace_)
 
     refined_text = "".join(words).strip()
     
-    # Sentence-level improvements
-    refined_text = re.sub(r'^(?i)i am a\s+', f"Highly motivated {target_role} with ", refined_text)
-    refined_text = re.sub(r'^(?i)i have\s+', "Possessing ", refined_text)
-    
+    # 2. Structural Formatting based on Mode
+    if req.format == "concise":
+        # Keep it short, remove fluff
+        refined_text = re.sub(r'^(?i)(highly motivated|result-driven|possessing)\s+\w+\s+', "", refined_text)
+        if len(refined_text) > 300:
+            refined_text = refined_text[:300] + "..."
+    elif req.format == "technical":
+        # Ensure role-specific tech marker
+        if "specializing in" not in refined_text.lower():
+            refined_text = f"{target_role} with expertise in " + refined_text[0].lower() + refined_text[1:]
+    else: # balanced / impactful
+        refined_text = re.sub(r'^(?i)i am a\s+', f"Highly motivated {target_role} with ", refined_text)
+        refined_text = re.sub(r'^(?i)i have\s+', "Possessing ", refined_text)
+        
+    # Final cleanup
     if refined_text:
         refined_text = refined_text[0].upper() + refined_text[1:]
         if not refined_text.endswith('.'):
             refined_text += '.'
 
-    if target_role.lower() not in refined_text.lower() and len(refined_text) < 500:
-        refined_text = f"Result-oriented {target_role} specializing in " + refined_text[0].lower() + refined_text[1:]
+    if len(refined_text) < 50: # Too short fallback
+        refined_text = f"Accomplished {target_role} dedicated to excellence and continuous improvement."
 
-    return {"refined_summary": refined_text, "status": "locally-refined"}
+    return {
+        "refined_summary": refined_text, 
+        "format_used": req.format,
+        "status": "locally-refined-ats"
+    }
 
 if __name__ == "__main__":
     import uvicorn
