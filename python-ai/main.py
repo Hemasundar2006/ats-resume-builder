@@ -23,10 +23,13 @@ except OSError:
 # ----------------- Step 2: FastAPI Setup -----------------
 app = FastAPI(title="ATS Resume Builder - AI Service")
 
+# Support for development and potential production origins
 origins = [
     "http://localhost:3000",
-    "http://localhost:5173",  # Added Vite default port
+    "http://localhost:5173",
     "http://localhost:5000",
+    "https://ats-resume-builder-neon.vercel.app", # Potential production frontend
+    "*" # For fallback, or narrower during dev
 ]
 
 app.add_middleware(
@@ -44,25 +47,34 @@ class ScoreRequest(BaseModel):
     job_description: str
 
 def extract_text_from_pdf(file_bytes):
-    with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
-        text = ""
-        for page in pdf.pages:
-            text += page.extract_text() or ""
-    return text
+    try:
+        with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
+            text = ""
+            for page in pdf.pages:
+                text += page.extract_text() or ""
+        return text
+    except Exception as e:
+        print(f"Error extracting from PDF: {e}")
+        return ""
 
 def extract_text_from_docx(file_bytes):
-    doc = Document(io.BytesIO(file_bytes))
-    text = "\n".join([para.text for para in doc.paragraphs])
-    return text
+    try:
+        doc = Document(io.BytesIO(file_bytes))
+        text = "\n".join([para.text for para in doc.paragraphs])
+        return text
+    except Exception as e:
+        print(f"Error extracting from DOCX: {e}")
+        return ""
 
 def clean_text(text):
-    # Remove extra whitespace
+    # Remove excessive whitespace
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
 def extract_contact_info(text):
+    # Simple regex for email and phone numbers
     email_regex = r'[\w\.-]+@[\w\.-]+\.\w+'
-    phone_regex = r'(\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{10})'
+    phone_regex = r'(\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{10,13})'
     
     emails = re.findall(email_regex, text)
     phones = re.findall(phone_regex, text)
@@ -73,19 +85,21 @@ def extract_contact_info(text):
     }
 
 def select_template(text):
+    # Template selection based on keyword density/presence
     text = text.lower()
-    if any(k in text for k in ["doctor", "nurse", "medical", "hospital", "clinical", "healthcare"]):
-        return "healthcare"
-    if any(k in text for k in ["creative", "designer", "art", "video", "media", "graphics", "photoshop"]):
-        return "creative"
-    if any(k in text for k in ["sales", "account manager", "business development", "revenue", "leads"]):
-        return "sales"
-    if any(k in text for k in ["software", "developer", "engineer", "coder", "fullstack", "backend", "frontend"]):
-        return "modern"
-    if any(k in text for k in ["academic", "research", "phd", "university", "professor", "publication"]):
-        return "academic"
-    if any(k in text for k in ["executive", "director", "manager", "leadership", "strategy"]):
-        return "executive"
+    mapping = {
+        "healthcare": ["doctor", "nurse", "medical", "hospital", "clinical", "healthcare", "surgeon"],
+        "creative": ["creative", "designer", "art", "video", "media", "graphics", "photoshop", "illustrator", "animation"],
+        "sales": ["sales", "account manager", "business development", "revenue", "leads", "marketing", "retail"],
+        "modern": ["software", "developer", "engineer", "coder", "fullstack", "backend", "frontend", "automation", "python", "javascript", "react", "node"],
+        "academic": ["academic", "research", "phd", "university", "professor", "publication", "teaching", "curriculum"],
+        "executive": ["executive", "director", "manager", "leadership", "strategy", "ceo", "cto", "vp", "president"]
+    }
+    
+    for template, keywords in mapping.items():
+        if any(k in text for k in keywords):
+            return template
+            
     return "classic"
 
 def extract_sections(text):
@@ -99,68 +113,59 @@ def extract_sections(text):
         "achievements": []
     }
     
-    # Very basic section splitter (can be improved with better NLP)
-    # This is a heuristic-based approach
+    # Heuristic based header detection
     lines = text.split('\n')
     current_section = "summary"
     
-    experience_keywords = ["experience", "employment", "work history", "professional background"]
-    education_keywords = ["education", "academic", "qualifications"]
-    skills_keywords = ["skills", "technologies", "technical stack", "tools"]
-    projects_keywords = ["projects", "key projects", "personal projects"]
-    awards_keywords = ["awards", "achievements", "honors"]
-    certs_keywords = ["certifications", "certs", "licenses"]
+    keywords = {
+        "experience": ["experience", "employment", "work history", "professional background", "career history"],
+        "education": ["education", "academic", "qualifications", "schooling"],
+        "skills": ["skills", "technologies", "technical stack", "tools", "competencies", "strengths"],
+        "projects": ["projects", "key projects", "personal projects", "notable works"],
+        "achievements": ["awards", "achievements", "honors", "accomplishments"],
+        "certifications": ["certifications", "certs", "licenses", "courses"]
+    }
     
     for line in lines:
-        clean_line = line.strip().lower()
+        clean_line = line.strip()
         if not clean_line: continue
         
-        # Check if line is a header
-        if any(k in clean_line for k in experience_keywords) and len(clean_line) < 20:
-            current_section = "experience"
-            continue
-        elif any(k in clean_line for k in education_keywords) and len(clean_line) < 20:
-            current_section = "education"
-            continue
-        elif any(k in clean_line for k in skills_keywords) and len(clean_line) < 20:
-            current_section = "skills"
-            continue
-        elif any(k in clean_line for k in projects_keywords) and len(clean_line) < 20:
-            current_section = "projects"
-            continue
-        elif any(k in clean_line for k in awards_keywords) and len(clean_line) < 20:
-            current_section = "achievements"
-            continue
-        elif any(k in clean_line for k in certs_keywords) and len(clean_line) < 20:
-            current_section = "certifications"
+        # Check if line looks like a header (short and contains section keywords)
+        lower_line = clean_line.lower()
+        found_header = False
+        if len(clean_line) < 30: # Most headers are short
+            for section, keys in keywords.items():
+                if any(k in lower_line for k in keys):
+                    current_section = section
+                    found_header = True
+                    break
+            
+        if found_header:
             continue
             
+        # Append content based on current section
         if current_section == "summary":
-            sections["summary"] += line + " "
-        elif current_section == "experience":
-            # Just push lines for now, frontend will need to handle formatting or we can group better
-            sections["experience"].append(line)
-        elif current_section == "education":
-            sections["education"].append(line)
+            sections["summary"] += clean_line + " "
         elif current_section == "skills":
-            # Split skills by comma or semicolon
-            splitted = re.split(r'[,;•|]', line)
+            # Often skills are comma-separated or bulb-points
+            splitted = re.split(r'[,;•|]', clean_line)
             sections["skills"].extend([s.strip() for s in splitted if s.strip()])
-        elif current_section == "projects":
-            sections["projects"].append(line)
         else:
             if current_section in sections:
                 if isinstance(sections[current_section], list):
-                    sections[current_section].append(line)
+                    sections[current_section].append(clean_line)
                 else:
-                    sections[current_section] += line + " "
+                    sections[current_section] += clean_line + " "
 
-    # Post-processing summary
+    # Post cleanup
     sections["summary"] = sections["summary"].strip()
-    
     return sections
 
 # ----------------- Step 4: Endpoints -----------------
+
+@app.get("/")
+def read_root():
+    return {"status": "AI service is running", "model": MODEL_NAME}
 
 @app.post("/api/v1/extract")
 async def extract_resume(file: UploadFile = File(...)):
@@ -181,8 +186,8 @@ async def extract_resume(file: UploadFile = File(...)):
     contact = extract_contact_info(raw_text)
     
     # Try to find Name (often first line)
-    lines = raw_text.split('\n')
-    name = lines[0].strip() if lines else ""
+    lines = [L for L in raw_text.split('\n') if L.strip()]
+    name = lines[0].strip() if lines else "Candidate Name"
     
     # Extract sections
     sections = extract_sections(raw_text)
@@ -190,6 +195,18 @@ async def extract_resume(file: UploadFile = File(...)):
     # Template Selection
     template = select_template(raw_text)
     
+    # Map raw lines to more structured format for frontend (Keep compatible with existing UI)
+    def format_experience(exp_lines):
+        if not exp_lines: return []
+        # Return first 3 descriptive lines of experience
+        return [{
+            "company": "Company Name", 
+            "jobTitle": "Job Title", 
+            "startDate": "", 
+            "endDate": "", 
+            "description": "\n".join(exp_lines[:4])
+        }]
+
     return {
         "personalInfo": {
             "fullName": name,
@@ -199,31 +216,41 @@ async def extract_resume(file: UploadFile = File(...)):
             "github": "",
             "portfolio": ""
         },
-        "summary": sections["summary"][:500], # Limit summary
-        "experience": [{"company": "Company Name", "jobTitle": "Job Title", "startDate": "", "endDate": "", "description": "\n".join(sections["experience"][:3])}] if sections["experience"] else [],
+        "summary": sections["summary"][:600],
+        "experience": format_experience(sections["experience"]),
         "education": [{"institution": "Institution Name", "degree": "", "fieldOfStudy": "", "graduationYear": "", "gpa": ""}],
-        "skills": list(set(sections["skills"]))[:15],
+        "skills": list(set(sections["skills"]))[:20], # More skills allowed
         "projects": [],
-        "certifications": sections["certifications"][:3],
-        "achievements": sections["achievements"][:3],
+        "certifications": sections["certifications"][:5],
+        "achievements": sections["achievements"][:5],
         "selectedTemplate": template
     }
 
 @app.post("/api/v1/score")
 def score_resume(req: ScoreRequest):
-    # (Existing scoring logic remains the same)
+    # ATS Scoring via NLP keyword matching
     doc = nlp(req.resume_text)
-    resume_keywords = {token.text.lower().strip() for token in doc if token.pos_ in ["NOUN", "PROPN"] and not token.is_stop and not token.is_punct}
+    # Extract nouns and proper nouns as keywords
+    resume_keywords = {
+        token.text.lower().strip() 
+        for token in doc 
+        if token.pos_ in ["NOUN", "PROPN"] and not token.is_stop and not token.is_punct
+    }
     
     doc_jd = nlp(req.job_description)
-    jd_keywords = {token.text.lower().strip() for token in doc_jd if token.pos_ in ["NOUN", "PROPN"] and not token.is_stop and not token.is_punct}
+    jd_keywords = {
+        token.text.lower().strip() 
+        for token in doc_jd 
+        if token.pos_ in ["NOUN", "PROPN"] and not token.is_stop and not token.is_punct
+    }
     
     if not jd_keywords:
         return {"ats_score": 0, "matched_keywords": [], "missing_keywords": []}
         
     matched_keywords = resume_keywords.intersection(jd_keywords)
     missing_keywords = jd_keywords.difference(resume_keywords)
-    ats_score = round((len(matched_keywords) / len(jd_keywords)) * 100)
+    # Basic matching percentage
+    ats_score = round((len(matched_keywords) / len(jd_keywords)) * 100) if jd_keywords else 0
     
     return {
         "ats_score": ats_score,
@@ -233,4 +260,5 @@ def score_resume(req: ScoreRequest):
 
 if __name__ == "__main__":
     import uvicorn
+    # Make sure to run with host 0.0.0.0 for docker/render compatibility
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
