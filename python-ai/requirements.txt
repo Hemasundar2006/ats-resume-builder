@@ -1,7 +1,7 @@
-fastapi
-uvicorn
-spacy
-pdfplumber
-python-docx
-python-multipart
-pydantic
+fastapi==0.95.2
+uvicorn==0.22.0
+spacy==3.7.2
+pydantic==1.10.13
+pdfplumber==0.11.9
+python-docx==1.2.0
+python-multipart==0.0.6
