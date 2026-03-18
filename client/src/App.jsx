@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Download, CheckCircle, XCircle, User, Briefcase, GraduationCap, Code, Star, AlignLeft, Plus, Trash2, X, ChevronRight, Sparkles, Award, ArrowLeft, Eye, Edit3, Layout } from 'lucide-react';
+import { FileText, Download, CheckCircle, XCircle, User, Briefcase, GraduationCap, Code, Star, AlignLeft, Plus, Trash2, X, ChevronRight, Sparkles, Award, ArrowLeft, Eye, Edit3, Layout, Upload, Zap } from 'lucide-react';
 import axios from 'axios';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { ResumePDF } from './components/ResumePDF';
 import { toPng } from 'html-to-image';
 import download from 'downloadjs';
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { Analytics } from "@vercel/analytics/react";
 
 axios.defaults.baseURL = 'https://ats-resume-builder-7xio.onrender.com';
+const AI_SERVICE_URL = 'http://localhost:8000';
 
 const TEMPLATES = [
   { id: 'classic', name: 'Classic ATS', desc: 'Standard serif, high parseability', image: 'template_classic_ats_1773575577224.png' },
@@ -27,7 +28,34 @@ const TEMPLATES = [
 ];
 
 // --- Landing Page Component ---
-const LandingPage = ({ onStart }) => {
+const LandingPage = ({ onStart, onAIUpload }) => {
+  const [isUploading, setIsUploading] = React.useState(false);
+  const fileInputRef = React.useRef(null);
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await axios.post(`${AI_SERVICE_URL}/api/v1/extract`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      onAIUpload(response.data);
+    } catch (err) {
+      console.error('AI Extraction failed:', err);
+      alert('Failed to extract data. Please try again or start manually.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-black relative overflow-hidden font-sans perspective-1000">
       
@@ -71,27 +99,46 @@ const LandingPage = ({ onStart }) => {
           transition={{ delay: 0.5, duration: 0.8 }}
           className="text-xl md:text-2xl text-gray-300 mb-12 max-w-2xl font-medium leading-relaxed"
         >
-          Beat the bots with our AI-powered structuring engine. Craft your resume in real-time, instantly score it against real job descriptions, and export to a perfectly parseable format.
+          Beat the bots with our AI-powered structuring engine. Craft your resume in real-time or upload your old one to instantly switch to a perfect ATS-friendly layout.
         </motion.p>
 
-        <motion.button
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8, type: "spring", bounce: 0.5 }}
-          whileHover={{ scale: 1.05, translateY: -5, boxShadow: "0px 20px 40px rgba(204, 255, 0, 0.3)" }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onStart}
-          className="group relative px-10 py-5 bg-[#ccff00] rounded-full text-black font-bold text-xl flex items-center gap-3 overflow-hidden border border-[#ccff00]/20 shadow-[0_0_20px_rgba(204,255,0,0.2)] transition-all"
-        >
-          <span className="relative z-10 flex items-center gap-2 font-black italic">Build My Resume <ChevronRight className="group-hover:translate-x-1 transition-transform" /></span>
-          
-          <motion.div 
-            initial={{ x: "-100%" }}
-            whileHover={{ x: "200%" }}
-            transition={{ duration: 0.6, ease: "easeInOut" }}
-            className="absolute top-0 left-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/50 to-transparent skew-x-[-45deg]"
+        <div className="flex flex-col sm:flex-row gap-6">
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            className="hidden" 
+            accept=".pdf,.docx"
           />
-        </motion.button>
+          
+          <motion.button
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, type: "spring", bounce: 0.5 }}
+            whileHover={{ scale: 1.05, translateY: -5, boxShadow: "0px 20px 40px rgba(204, 255, 0, 0.3)" }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => fileInputRef.current.click()}
+            disabled={isUploading}
+            className="group relative px-10 py-5 bg-white text-black font-bold text-xl flex items-center gap-3 overflow-hidden border border-white/20 shadow-xl transition-all rounded-2xl"
+          >
+            <span className="relative z-10 flex items-center gap-2 font-black italic">
+              {isUploading ? <span className="animate-spin text-[#ccff00]"><Zap size={20}/></span> : <Upload size={20} />} 
+              {isUploading ? "Reading..." : "Upload & Build with AI"}
+            </span>
+          </motion.button>
+
+          <motion.button
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1, type: "spring", bounce: 0.5 }}
+            whileHover={{ scale: 1.05, translateY: -5, boxShadow: "0px 20px 40px rgba(204, 255, 0, 0.3)" }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onStart}
+            className="group relative px-10 py-5 bg-[#ccff00] rounded-2xl text-black font-bold text-xl flex items-center gap-3 overflow-hidden border border-[#ccff00]/20 shadow-[0_0_20px_rgba(204,255,0,0.2)] transition-all"
+          >
+            <span className="relative z-10 flex items-center gap-2 font-black italic">Create Manually <ChevronRight className="group-hover:translate-x-1 transition-transform" /></span>
+          </motion.button>
+        </div>
       </div>
 
       {/* Developer Credit Footer */}
@@ -171,7 +218,7 @@ const TemplateGallery = ({ onSelect, onBack }) => {
 
 
 // --- Builder Page Component ---
-const BuilderPage = ({ initialTemplate, onBack }) => {
+const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
   const resumeRef = useRef(null);
 
   const downloadImage = async () => {
@@ -245,17 +292,17 @@ const BuilderPage = ({ initialTemplate, onBack }) => {
   const [activeTab, setActiveTab] = useState('personal');
 
   // Schema States
-  const [personalInfo, setPersonalInfo] = useState({ fullName: '', email: '', phone: '', linkedin: '', github: '', portfolio: '' });
-  const [summary, setSummary] = useState('');
-  const [experience, setExperience] = useState([{ company: '', jobTitle: '', startDate: '', endDate: '', description: '' }]);
-  const [education, setEducation] = useState([{ institution: '', degree: '', fieldOfStudy: '', graduationYear: '', gpa: '' }]);
-  const [projects, setProjects] = useState([{ title: '', technologies: '', description: '', link: '' }]);
-  const [skills, setSkills] = useState([]);
+  const [personalInfo, setPersonalInfo] = useState(initialData?.personalInfo || { fullName: '', email: '', phone: '', linkedin: '', github: '', portfolio: '' });
+  const [summary, setSummary] = useState(initialData?.summary || '');
+  const [experience, setExperience] = useState(initialData?.experience || [{ company: '', jobTitle: '', startDate: '', endDate: '', description: '' }]);
+  const [education, setEducation] = useState(initialData?.education || [{ institution: '', degree: '', fieldOfStudy: '', graduationYear: '', gpa: '' }]);
+  const [projects, setProjects] = useState(initialData?.projects || [{ title: '', technologies: '', description: '', link: '' }]);
+  const [skills, setSkills] = useState(initialData?.skills || []);
   const [skillInput, setSkillInput] = useState('');
-  const [certifications, setCertifications] = useState(['']);
-  const [achievements, setAchievements] = useState(['']);
+  const [certifications, setCertifications] = useState(initialData?.certifications || ['']);
+  const [achievements, setAchievements] = useState(initialData?.achievements || ['']);
 
-  const [selectedTemplate, setSelectedTemplate] = useState(initialTemplate || 'classic');
+  const [selectedTemplate, setSelectedTemplate] = useState(initialData?.selectedTemplate || initialTemplate || 'classic');
   const [showMobilePreview, setShowMobilePreview] = useState(false);
 
 
@@ -838,6 +885,13 @@ const BuilderPage = ({ initialTemplate, onBack }) => {
 export default function App() {
   const [appState, setAppState] = useState('landing'); // 'landing', 'selection', 'builder'
   const [selectedTemplate, setSelectedTemplate] = useState('classic');
+  const [initialResumeData, setInitialResumeData] = useState(null);
+
+  const handleAIUpload = (data) => {
+    setInitialResumeData(data);
+    setSelectedTemplate(data.selectedTemplate || 'classic');
+    setAppState('builder');
+  };
 
   return (
     <>
@@ -845,7 +899,10 @@ export default function App() {
       <AnimatePresence mode="wait">
         {appState === 'landing' && (
           <motion.div key="landing" exit={{ opacity: 0, scale: 1.1, filter: "blur(10px)" }} transition={{ duration: 0.5 }}>
-            <LandingPage onStart={() => setAppState('selection')} />
+            <LandingPage 
+              onStart={() => setAppState('selection')} 
+              onAIUpload={handleAIUpload}
+            />
           </motion.div>
         )}
         {appState === 'selection' && (
@@ -860,7 +917,11 @@ export default function App() {
           <motion.div key="builder" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}>
             <BuilderPage 
               initialTemplate={selectedTemplate} 
-              onBack={() => setAppState('selection')}
+              initialData={initialResumeData}
+              onBack={() => {
+                setInitialResumeData(null);
+                setAppState('selection');
+              }}
             />
           </motion.div>
         )}
