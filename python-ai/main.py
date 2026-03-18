@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ----------------- Step 1: spaCy Model Loading -----------------
-MODEL_NAME = "en_core_web_sm" # Fixed to the registered name of your local model
+MODEL_NAME = "en_core_web_sm-3.7.1-py3-none-any.whl" # Fixed to the registered name of your local model
 
 # We assume the model is already installed via the .whl as per your prompt.
 nlp = spacy.load(MODEL_NAME)

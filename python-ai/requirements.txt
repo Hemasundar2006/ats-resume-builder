@@ -5,6 +5,8 @@ spacy
 pdfplumber==0.11.0
 python-docx==1.1.0
 python-multipart==0.0.9
+google-generativeai
+python-dotenv
 ./en_core_web_sm-3.7.1-py3-none-any.whl
 
 
