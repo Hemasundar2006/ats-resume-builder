@@ -535,16 +535,18 @@ async def extract_resume(file: UploadFile = File(...)):
 
 @app.post("/api/v1/score")
 def score_resume(req: ScoreRequest):
-    # ATS Scoring via Lightweight keyword matching (Regex instead of spaCy)
-    
-    # Extract words that look like technical keywords (Capitalized or special sequences)
-    resume_keywords = set(re.findall(r'\b[A-Z][a-zA-Z0-9+#.]*\b|\b(?:python|java|javascript|react|node|aws|sql|docker)\b', req.resume_text.lower()))
-    jd_keywords = set(re.findall(r'\b[A-Z][a-zA-Z0-9+#.]*\b|\b(?:python|java|javascript|react|node|aws|sql|docker)\b', req.job_description.lower()))
-    
-    # Stopword filter equivalent
+    # ATS Scoring via keyword overlap.
+    # Prefer spaCy (lemmatized tokens) if available; otherwise use regex fallback.
     stopwords = {'the', 'and', 'for', 'with', 'this', 'that', 'from', 'are', 'was', 'were'}
-    resume_keywords = {k for k in resume_keywords if k not in stopwords and len(k) > 1}
-    jd_keywords = {k for k in jd_keywords if k not in stopwords and len(k) > 1}
+
+    resume_keywords = spacy_extract_keywords(req.resume_text)
+    jd_keywords = spacy_extract_keywords(req.job_description)
+
+    if not resume_keywords or not jd_keywords:
+        resume_keywords = set(re.findall(r'\b[a-z][a-z0-9+#.]{1,}\b', (req.resume_text or "").lower()))
+        jd_keywords = set(re.findall(r'\b[a-z][a-z0-9+#.]{1,}\b', (req.job_description or "").lower()))
+        resume_keywords = {k for k in resume_keywords if k not in stopwords and len(k) > 1}
+        jd_keywords = {k for k in jd_keywords if k not in stopwords and len(k) > 1}
     
     if not jd_keywords:
         return {"ats_score": 0, "matched_keywords": [], "missing_keywords": []}
