@@ -12,7 +12,7 @@ import { Analytics } from "@vercel/analytics/react";
 void motion;
 
 axios.defaults.baseURL = 'https://ats-resume-builder-7xio.onrender.com';
-const AI_SERVICE_URL = import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:8000';
+const AI_SERVICE_URL = import.meta.env.VITE_AI_SERVICE_URL || 'https://ats-resume-builder-1-5se3.onrender.com';
 
 const aiClient = axios.create({
   baseURL: AI_SERVICE_URL,
@@ -72,7 +72,7 @@ const LandingPage = ({ onStart, onAIUpload, onScore, onResumeScore }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-black relative overflow-hidden font-sans perspective-1000">
+    <div className="min-h-screen flex flex-col items-center justify-start md:justify-center bg-black relative overflow-y-auto overflow-x-hidden font-sans perspective-1000 py-8 md:py-0 scrollbar-hide">
       
       {/* 3D Background Elements */}
       <motion.div 
@@ -103,9 +103,9 @@ const LandingPage = ({ onStart, onAIUpload, onScore, onResumeScore }) => {
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2, duration: 0.8, type: "spring" }}
-          className="text-6xl md:text-8xl font-black tracking-tighter mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white via-[#ccff00] to-gray-500 drop-shadow-2xl"
+          className="text-4xl md:text-8xl font-black tracking-tighter mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white via-[#ccff00] to-gray-500 drop-shadow-2xl"
         >
-          Next-Gen ATS <br/> <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ccff00] to-[#00ffcc]">Resume Builder</span>
+          Next-Gen ATS <br className="hidden md:block"/> <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ccff00] to-[#00ffcc]">Resume Builder</span>
         </motion.h1>
 
         <motion.p 
@@ -126,7 +126,7 @@ const LandingPage = ({ onStart, onAIUpload, onScore, onResumeScore }) => {
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row gap-6">
+        <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-4 sm:gap-6 w-full sm:w-auto px-6 sm:px-0">
           <input 
             type="file" 
             ref={fileInputRef} 
@@ -143,11 +143,25 @@ const LandingPage = ({ onStart, onAIUpload, onScore, onResumeScore }) => {
             whileTap={{ scale: 0.95 }}
             onClick={() => fileInputRef.current.click()}
             disabled={isUploading}
-            className="group relative px-10 py-5 bg-white text-black font-bold text-xl flex items-center gap-3 overflow-hidden border border-white/20 shadow-xl transition-all rounded-2xl"
+            className="group relative px-6 md:px-10 py-4 md:py-5 bg-white text-black font-bold text-lg md:text-xl flex items-center justify-center gap-3 overflow-hidden border border-white/20 shadow-xl transition-all rounded-2xl w-full sm:w-auto min-w-[200px]"
           >
             <span className="relative z-10 flex items-center gap-2 font-black italic">
               {isUploading ? <span className="animate-spin text-[#ccff00]"><Zap size={20}/></span> : <Upload size={20} />} 
-              {isUploading ? "Reading..." : "Upload & Build with AI"}
+              {isUploading ? "Reading..." : "Upload & Build"}
+            </span>
+          </motion.button>
+
+          <motion.button
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.85, type: "spring", bounce: 0.5 }}
+            whileHover={{ scale: 1.05, translateY: -5, boxShadow: "0px 20px 40px rgba(0, 255, 204, 0.25)" }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onScore}
+            className="group relative px-6 md:px-10 py-4 md:py-5 bg-transparent text-white font-bold text-lg md:text-xl flex items-center justify-center gap-3 overflow-hidden border border-white/10 shadow-xl transition-all rounded-2xl w-full sm:w-auto min-w-[200px]"
+          >
+            <span className="relative z-10 flex items-center gap-2 font-black italic">
+              <CheckCircle size={20} /> Match Score
             </span>
           </motion.button>
 
@@ -155,50 +169,33 @@ const LandingPage = ({ onStart, onAIUpload, onScore, onResumeScore }) => {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.9, type: "spring", bounce: 0.5 }}
-            whileHover={{ scale: 1.05, translateY: -5, boxShadow: "0px 20px 40px rgba(0, 255, 204, 0.25)" }}
+            whileHover={{ scale: 1.05, translateY: -5, boxShadow: "0px 20px 40px rgba(204, 255, 0, 0.3)" }}
             whileTap={{ scale: 0.95 }}
-            onClick={onScore}
-            className="group relative px-10 py-5 bg-transparent text-white font-bold text-xl flex items-center gap-3 overflow-hidden border border-white/20 shadow-xl transition-all rounded-2xl"
+            onClick={onResumeScore}
+            className="group relative px-6 md:px-10 py-4 md:py-5 bg-transparent text-white font-bold text-lg md:text-xl flex items-center justify-center gap-3 overflow-hidden border border-white/10 shadow-xl transition-all rounded-2xl w-full sm:w-auto min-w-[200px]"
           >
-            <span className="relative z-10 flex items-center gap-2 font-black italic">
-              <CheckCircle size={20} /> Check ATS Score
-            </span>
+            <span className="relative z-10 flex items-center gap-2 font-black italic text-center"> <Star size={20} className="text-[#ccff00]"/> Quality Score</span>
           </motion.button>
 
           <motion.button
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.95, type: "spring", bounce: 0.5 }}
-            whileHover={{ scale: 1.05, translateY: -5, boxShadow: "0px 20px 40px rgba(59, 130, 246, 0.2)" }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onResumeScore}
-            className="group relative px-10 py-5 bg-transparent text-white font-bold text-xl flex items-center gap-3 overflow-hidden border border-white/20 shadow-xl transition-all rounded-2xl"
-          >
-            <span className="relative z-10 flex items-center gap-2 font-black italic">
-              <Star size={20} /> Resume Quality Score
-            </span>
-          </motion.button>
-
-          <motion.button
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1, type: "spring", bounce: 0.5 }}
-            whileHover={{ scale: 1.05, translateY: -5, boxShadow: "0px 20px 40px rgba(204, 255, 0, 0.3)" }}
+            whileHover={{ scale: 1.05, translateY: -5, boxShadow: "0_0_20px_rgba(204,255,0,0.3)" }}
             whileTap={{ scale: 0.95 }}
             onClick={onStart}
-            className="group relative px-10 py-5 bg-[#ccff00] rounded-2xl text-black font-bold text-xl flex items-center gap-3 overflow-hidden border border-[#ccff00]/20 shadow-[0_0_20px_rgba(204,255,0,0.2)] transition-all"
+            className="group relative px-6 md:px-10 py-4 md:py-5 bg-[#ccff00] rounded-2xl text-black font-bold text-lg md:text-xl flex items-center justify-center gap-3 overflow-hidden border border-[#ccff00]/20 shadow-[0_0_20px_rgba(204,255,0,0.2)] transition-all w-full sm:w-auto min-w-[200px]"
           >
-            <span className="relative z-10 flex items-center gap-2 font-black italic">Create Manually <ChevronRight className="group-hover:translate-x-1 transition-transform" /></span>
+            <span className="relative z-10 flex items-center gap-2 font-black italic text-center">Create Manually</span>
           </motion.button>
         </div>
       </div>
 
-      {/* Developer Credit Footer */}
       <motion.footer
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.2 }}
-        className="absolute bottom-6 md:bottom-10 w-full text-center px-6 text-gray-600 font-bold uppercase tracking-[0.15em] md:tracking-[0.4em] text-[9px] md:text-[10px] z-20"
+        className="relative md:absolute bottom-0 md:bottom-10 w-full text-center px-6 py-4 md:py-0 text-gray-600 font-bold uppercase tracking-[0.15em] md:tracking-[0.4em] text-[10px] z-20 mt-10"
       >
         Designed and developed by <span className="text-[#ccff00]">Hemasundar Maroti</span>
       </motion.footer>
@@ -280,13 +277,14 @@ const ScorePage = ({ onBack }) => {
   const inputStyle = "w-full mt-1.5 bg-gray-900/40 border border-gray-700/50 rounded-xl p-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-[#ccff00] focus:border-[#ccff00] outline-none transition-all shadow-inner backdrop-blur-sm";
   const labelStyle = "text-xs font-bold text-gray-300 uppercase tracking-widest pl-1";
 
-  const handleExtract = async () => {
-    if (!file) return;
+  const handleExtract = async (manualFile = null) => {
+    const fileToProcess = manualFile || file;
+    if (!fileToProcess) return;
     setIsExtracting(true);
     setAtsResult(null);
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', fileToProcess);
       const resp = await aiClient.post(`/api/v1/extract`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
@@ -341,40 +339,28 @@ const ScorePage = ({ onBack }) => {
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="bg-gray-800/20 backdrop-blur-md border border-white/5 rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+          <div className="bg-gray-800/20 backdrop-blur-md border border-white/5 rounded-3xl p-5 sm:p-7 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
             <h2 className="text-xl font-black mb-4">1) Resume</h2>
             <label className={labelStyle}>Upload (PDF/DOCX)</label>
             <input
               type="file"
               accept=".pdf,.docx"
               className={inputStyle}
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              onChange={(e) => {
+                const f = e.target.files?.[0] || null;
+                setFile(f);
+                if (f) handleExtract(f);
+              }}
             />
-            <div className="mt-4 flex gap-3">
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={handleExtract}
-                disabled={!file || isExtracting}
-                className={`px-5 py-3 rounded-2xl font-black uppercase tracking-widest text-xs transition-all ${
-                  (!file || isExtracting) ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-white text-black'
-                }`}
-              >
-                {isExtracting ? 'Extracting...' : 'Extract Text'}
-              </motion.button>
-            </div>
+            {isExtracting && (
+              <div className="mt-3 flex items-center gap-2 text-[#ccff00] font-bold text-xs animate-pulse italic">
+                <Zap size={14} className="animate-spin" /> Reading resume content...
+              </div>
+            )}
 
-            <label className={`${labelStyle} mt-6 block`}>Resume text</label>
-            <textarea
-              rows="10"
-              className={`${inputStyle} mt-2 font-mono text-xs`}
-              placeholder="Extracted resume text will appear here (you can also paste manually)."
-              value={resumeText}
-              onChange={(e) => setResumeText(e.target.value)}
-            />
           </div>
 
-          <div className="bg-gray-800/20 backdrop-blur-md border border-white/5 rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+          <div className="bg-gray-800/20 backdrop-blur-md border border-white/5 rounded-3xl p-5 sm:p-7 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
             <h2 className="text-xl font-black mb-4">2) Job Description</h2>
             <label className={labelStyle}>Paste job description</label>
             <textarea
@@ -449,13 +435,14 @@ const ResumeScorePage = ({ onBack }) => {
   const inputStyle = "w-full mt-1.5 bg-gray-900/40 border border-gray-700/50 rounded-xl p-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-[#ccff00] focus:border-[#ccff00] outline-none transition-all shadow-inner backdrop-blur-sm";
   const labelStyle = "text-xs font-bold text-gray-300 uppercase tracking-widest pl-1";
 
-  const handleExtract = async () => {
-    if (!file) return;
+  const handleExtract = async (manualFile = null) => {
+    const fileToProcess = manualFile || file;
+    if (!fileToProcess) return;
     setIsExtracting(true);
     setResult(null);
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', fileToProcess);
       const resp = await aiClient.post(`/api/v1/extract`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
@@ -510,53 +497,43 @@ const ResumeScorePage = ({ onBack }) => {
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="bg-gray-800/20 backdrop-blur-md border border-white/5 rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+          <div className="bg-gray-800/20 backdrop-blur-md border border-white/5 rounded-3xl p-5 sm:p-7 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
             <h2 className="text-xl font-black mb-4">Resume</h2>
             <label className={labelStyle}>Upload (PDF/DOCX)</label>
             <input
               type="file"
               accept=".pdf,.docx"
               className={inputStyle}
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              onChange={(e) => {
+                const f = e.target.files?.[0] || null;
+                setFile(f);
+                if (f) handleExtract(f);
+              }}
             />
-            <div className="mt-4 flex gap-3">
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={handleExtract}
-                disabled={!file || isExtracting}
-                className={`px-5 py-3 rounded-2xl font-black uppercase tracking-widest text-xs transition-all ${
-                  (!file || isExtracting) ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-white text-black'
-                }`}
-              >
-                {isExtracting ? 'Extracting...' : 'Extract Text'}
-              </motion.button>
+            <div className="mt-4 flex flex-col gap-3">
+              {isExtracting && (
+                <div className="flex items-center gap-2 text-[#ccff00] font-bold text-xs animate-pulse italic mb-2">
+                  <Zap size={14} className="animate-spin" /> Analyzing quality tags...
+                </div>
+              )}
               <motion.button
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={handleScore}
                 disabled={isScoring || !resumeText.trim()}
-                className={`px-5 py-3 rounded-2xl font-black uppercase tracking-widest text-xs transition-all ${
+                className={`px-5 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-lg ${
                   (isScoring || !resumeText.trim())
                     ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
                     : 'bg-gradient-to-r from-[#ccff00] to-[#00ffcc] text-black shadow-[0_0_20px_rgba(204,255,0,0.3)]'
                 }`}
               >
-                {isScoring ? 'Scoring...' : 'Get Score'}
+                {isScoring ? 'Calculating...' : 'Get Resume Quality Score'}
               </motion.button>
             </div>
 
-            <label className={`${labelStyle} mt-6 block`}>Resume text</label>
-            <textarea
-              rows="10"
-              className={`${inputStyle} mt-2 font-mono text-xs`}
-              placeholder="Extracted resume text will appear here (you can also paste manually)."
-              value={resumeText}
-              onChange={(e) => setResumeText(e.target.value)}
-            />
           </div>
 
-          <div className="bg-gray-800/20 backdrop-blur-md border border-white/5 rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+          <div className="bg-gray-800/20 backdrop-blur-md border border-white/5 rounded-3xl p-5 sm:p-7 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
             <h2 className="text-xl font-black mb-4">Results</h2>
 
             {result?.resume_score !== undefined ? (
@@ -618,9 +595,27 @@ const ResumeScorePage = ({ onBack }) => {
 // --- Builder Page Component ---
 const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
   const resumeRef = useRef(null);
+  const containerRef = useRef(null);
   const [jobDescription, setJobDescription] = useState('');
   const [atsResult, setAtsResult] = useState(null);
   const [isScoring, setIsScoring] = useState(false);
+  const [previewScale, setPreviewScale] = useState(1);
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      if (!containerRef.current) return;
+      if (window.innerWidth < 768) {
+        // A4 is roughly 800px wide in this layout
+        const s = Math.min(1, (window.innerWidth - 32) / 800);
+        setPreviewScale(s);
+      } else {
+        setPreviewScale(1);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const downloadImage = async () => {
     if (resumeRef.current === null) return;
@@ -1205,34 +1200,44 @@ const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
       </div>
 
       {/* Live PDF View / Right Column */}
-      <div className={`w-full md:w-1/2 p-4 md:p-10 bg-black md:h-screen md:overflow-y-auto flex flex-col items-center relative z-20 custom-scrollbar border-l border-white/5 transition-transform duration-500 ${showMobilePreview ? 'flex fixed inset-0 z-50 md:relative md:z-20' : 'hidden md:flex'}`}>
+      <div 
+        ref={containerRef}
+        className={`w-full md:w-1/2 p-4 md:p-10 bg-black md:h-screen md:overflow-y-auto flex flex-col items-center relative z-20 custom-scrollbar border-l border-white/5 transition-transform duration-500 ${showMobilePreview ? 'flex fixed inset-0 z-50 md:relative md:z-20 bg-black/95' : 'hidden md:flex'}`}
+      >
         
         {/* Mobile Close Preview Button */}
-        <button 
-          onClick={() => setShowMobilePreview(false)}
-          className="md:hidden absolute top-6 right-6 z-50 p-3 bg-black border border-white/10 rounded-full"
-        >
-          <Edit3 size={20} className="text-[#ccff00]" />
-        </button>
+        {showMobilePreview && (
+          <button 
+            onClick={() => setShowMobilePreview(false)}
+            className="md:hidden absolute top-6 right-6 z-[60] p-4 bg-white text-black border border-white/10 rounded-full shadow-2xl active:scale-95 transition-all"
+          >
+            <X size={24} />
+          </button>
+        )}
         
         {/* Glow behind paper */}
         <div className="absolute top-[20%] right-[10%] w-[30%] h-[40%] bg-[#ccff00]/5 blur-[120px] rounded-full point-events-none" />
 
-        {/* Live Preview Paper */}
-        <motion.div 
-          ref={resumeRef}
-          key={selectedTemplate}
-          initial={{ opacity: 0, rotateX: 10, y: 30 }}
-          animate={{ opacity: 1, rotateX: 0, y: 0 }}
-          transition={{ duration: 0.6, type: "spring" }}
-          className={`w-full max-w-[210mm] bg-white text-gray-900 rounded-[2px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8),0_0_20px_rgba(255,255,255,0.05)] text-sm min-h-[297mm] transform-gpu flex ${selectedTemplate === 'sidebar' ? 'flex-row' : 'flex-col'} overflow-visible relative`}
-        >
+        {/* Live Preview Paper Container (for scaling) */}
+        <div className="w-full flex justify-center md:block overflow-visible">
+          <motion.div 
+            ref={resumeRef}
+            key={selectedTemplate}
+            initial={{ opacity: 0, rotateX: 10, y: 30 }}
+            animate={{ opacity: 1, rotateX: 0, y: 0 }}
+            transition={{ duration: 0.6, type: "spring" }}
+            style={{ 
+              transform: `scale(${previewScale})`,
+              transformOrigin: 'top center'
+            }}
+            className={`w-full max-w-[210mm] bg-white text-gray-900 rounded-[2px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8),0_0_20px_rgba(255,255,255,0.05)] text-sm min-h-[297mm] transform-gpu flex ${selectedTemplate === 'sidebar' ? 'flex-row' : 'flex-col'} overflow-visible relative flex-shrink-0`}
+          >
           {/* Visual Page Break Guide (Hidden in export) */}
           <div className="absolute top-[297mm] left-0 w-full border-t border-dashed border-gray-200 pointer-events-none z-50 print:hidden opacity-50" title="Page Break Guide"></div>
           {/* Sidebar Part */}
           {selectedTemplate === 'sidebar' && (
             <div className="w-[30%] bg-[#1e293b] text-white p-6 sm:p-10 flex flex-col">
-              <h1 className="text-2xl font-black mb-10 leading-tight uppercase font-sans">{dataPayload.personalInfo.fullName || 'YOUR NAME'}</h1>
+              <h1 className="text-2xl font-black mb-6 leading-tight uppercase font-sans">{dataPayload.personalInfo.fullName || 'YOUR NAME'}</h1>
               <div className="space-y-8">
                 <div>
                   <h4 className="text-[10px] font-black uppercase tracking-[0.2em] border-b border-white/20 pb-2 mb-4">Contact</h4>
@@ -1259,7 +1264,7 @@ const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
                 ${selectedTemplate === 'modern' || selectedTemplate === 'minimal' || selectedTemplate === 'google' ? 'border-none' : 'border-b-2 border-black'}
                 ${selectedTemplate === 'google' ? 'border-b border-gray-100 pb-2' : ''}
               `}>
-                <h1 className={`font-black text-black mb-4 leading-tight
+                <h1 className={`font-black text-black mb-2 leading-tight
                   ${selectedTemplate === 'modern' ? 'text-blue-600 text-5xl font-sans' : 
                     selectedTemplate === 'executive' ? 'text-4xl uppercase tracking-[0.2em]' : 
                     selectedTemplate === 'minimal' ? 'text-5xl font-light font-sans text-black tracking-tighter' : 
@@ -1417,6 +1422,7 @@ const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
             </div>
           </div>
         </motion.div>
+      </div>
 
         {/* 3D Export Button */}
         <motion.div 

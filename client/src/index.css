@@ -48,4 +48,10 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background-color: rgba(255, 255, 255, 0.2);
   }
+
+  /* Responsive Scaling for Preview */
+  .resume-paper-scale {
+    transform-origin: top center;
+    transition: transform 0.3s ease-out;
+  }
 }
