@@ -1,6 +1,7 @@
 import re
 import io
-# import spacy  <-- Removed to fix Render build
+import os
+import spacy
 import pdfplumber
 from docx import Document
 from fastapi import FastAPI, UploadFile, File, HTTPException
@@ -25,9 +26,29 @@ except ImportError:
 
 # ----------------- Step 1: spaCy Model Loading -----------------
 # The local wheel file installs the model with the name "en_core_web_sm"
-MODEL_NAME = "Regex-Heuristic-Fallback" 
+MODEL_NAME = os.getenv("SPACY_MODEL", "en_core_web_sm")
 
-# nlp = spacy.load(MODEL_NAME) <-- Removed
+nlp = None
+try:
+    nlp = spacy.load(MODEL_NAME)
+except Exception as e:
+    print(f"spaCy model load failed for '{MODEL_NAME}': {e}. Falling back to regex-only.")
+    MODEL_NAME = "Regex-Heuristic-Fallback"
+
+def spacy_extract_keywords(text: str) -> set:
+    if not nlp or not text:
+        return set()
+    doc = nlp(text[:20000])
+    kws = set()
+    for t in doc:
+        if t.is_stop or t.is_punct or t.is_space:
+            continue
+        if not (t.is_alpha or t.like_num):
+            continue
+        lemma = (t.lemma_ or t.text).strip().lower()
+        if len(lemma) > 1:
+            kws.add(lemma)
+    return kws
 
 # ----------------- Step 2: FastAPI Setup -----------------
 app = FastAPI(title="ATS Resume Builder - AI Service")
@@ -243,11 +264,20 @@ async def extract_resume(file: UploadFile = File(...)):
     # Basic Extraction
     contact = extract_contact_info(raw_text)
     
-    # Enhance extraction using Regex for Name recognition (SPA-FREE ALTERNATIVE)
+    # Enhance extraction using spaCy NER if available, otherwise regex heuristic
     lines = [L for L in raw_text.split('\n') if L.strip()]
     
     # Try to find a name at the very top of the document
     name = "Candidate Name"
+    if nlp:
+        try:
+            top_text = "\n".join(lines[:25]) if lines else raw_text[:2000]
+            doc = nlp(top_text)
+            person_ents = [ent.text.strip() for ent in doc.ents if ent.label_ == "PERSON" and 2 <= len(ent.text.strip()) <= 60]
+            if person_ents:
+                name = person_ents[0]
+        except Exception as e:
+            print(f"spaCy NER name extraction failed: {e}")
     if lines:
         for line in lines[:3]:
             # Simple heuristic: first line that doesn't look like contact info is usually the name
