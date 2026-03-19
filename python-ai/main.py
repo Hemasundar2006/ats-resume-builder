@@ -1,7 +1,6 @@
-import os
 import re
 import io
-import spacy
+# import spacy  <-- Removed to fix Render build
 import pdfplumber
 from docx import Document
 from fastapi import FastAPI, UploadFile, File, HTTPException
@@ -26,10 +25,9 @@ except ImportError:
 
 # ----------------- Step 1: spaCy Model Loading -----------------
 # The local wheel file installs the model with the name "en_core_web_sm"
-MODEL_NAME = "en_core_web_sm" 
+MODEL_NAME = "Regex-Heuristic-Fallback" 
 
-# We assume the model is already installed via 'pip install ./*.whl'
-nlp = spacy.load(MODEL_NAME)
+# nlp = spacy.load(MODEL_NAME) <-- Removed
 
 # ----------------- Step 2: FastAPI Setup -----------------
 app = FastAPI(title="ATS Resume Builder - AI Service")
@@ -245,11 +243,18 @@ async def extract_resume(file: UploadFile = File(...)):
     # Basic Extraction
     contact = extract_contact_info(raw_text)
     
-    # Enhance extraction using spaCy for Name recognition
+    # Enhance extraction using Regex for Name recognition (SPA-FREE ALTERNATIVE)
     lines = [L for L in raw_text.split('\n') if L.strip()]
-    doc = nlp(raw_text[:500]) # Scan beginning for names
-    persons = [ent.text for ent in doc.ents if ent.label_ == "PERSON"]
-    name = persons[0] if persons else lines[0].strip() if lines else "Candidate Name"
+    
+    # Try to find a name at the very top of the document
+    name = "Candidate Name"
+    if lines:
+        for line in lines[:3]:
+            # Simple heuristic: first line that doesn't look like contact info is usually the name
+            if not any(x in line.lower() for x in ['@', 'phone', 'http', 'linkedin', 'city']):
+                name = line.strip()
+                break
+    
     
     # Extract sections with more aggressive header matching
     def enhanced_extract_sections(text, candidate_name, contact_info):
@@ -500,21 +505,16 @@ async def extract_resume(file: UploadFile = File(...)):
 
 @app.post("/api/v1/score")
 def score_resume(req: ScoreRequest):
-    # ATS Scoring via NLP keyword matching
-    doc = nlp(req.resume_text)
-    # Extract nouns and proper nouns as keywords
-    resume_keywords = {
-        token.text.lower().strip() 
-        for token in doc 
-        if token.pos_ in ["NOUN", "PROPN"] and not token.is_stop and not token.is_punct
-    }
+    # ATS Scoring via Lightweight keyword matching (Regex instead of spaCy)
     
-    doc_jd = nlp(req.job_description)
-    jd_keywords = {
-        token.text.lower().strip() 
-        for token in doc_jd 
-        if token.pos_ in ["NOUN", "PROPN"] and not token.is_stop and not token.is_punct
-    }
+    # Extract words that look like technical keywords (Capitalized or special sequences)
+    resume_keywords = set(re.findall(r'\b[A-Z][a-zA-Z0-9+#.]*\b|\b(?:python|java|javascript|react|node|aws|sql|docker)\b', req.resume_text.lower()))
+    jd_keywords = set(re.findall(r'\b[A-Z][a-zA-Z0-9+#.]*\b|\b(?:python|java|javascript|react|node|aws|sql|docker)\b', req.job_description.lower()))
+    
+    # Stopword filter equivalent
+    stopwords = {'the', 'and', 'for', 'with', 'this', 'that', 'from', 'are', 'was', 'were'}
+    resume_keywords = {k for k in resume_keywords if k not in stopwords and len(k) > 1}
+    jd_keywords = {k for k in jd_keywords if k not in stopwords and len(k) > 1}
     
     if not jd_keywords:
         return {"ats_score": 0, "matched_keywords": [], "missing_keywords": []}
@@ -561,53 +561,28 @@ async def refine_summary(req: RefineRequest):
         except Exception as e:
             print(f"Gemini Refine Error: {e}. Falling back.")
     
-    # 2. OPTION B: Fallback to local spaCy rule-based refinement
-    doc = nlp(req.summary)
+    # 2. OPTION B: Fallback to local rule-based refinement (Regex instead of spaCy)
+    # No spaCy installed, so we use simpler word replacement
     
     # Expanded Action Verb Dictionary (ATS Power Words)
     ats_verbs = {
-        "led": ["Spearheaded", "Directed", "Guided", "Orchestrated"],
-        "did": ["Executed", "Performed", "Handled", "Implemented"],
-        "managed": ["Architected", "Administered", "Governed", "Supervised"],
-        "made": ["Engineered", "Developed", "Pioneered", "Constructed"],
-        "worked": ["Collaborated", "Contributed", "Partnered", "Engaged"],
-        "helped": ["Facilitated", "Empowered", "Supported", "Assisted"],
-        "started": ["Initiated", "Launched", "Conceptualized", "Inaugurated"],
-        "improved": ["Optimized", "Enhanced", "Refined", "Streamlined"],
-        "changed": ["Transformed", "Revolutionized", "Renovated", "Revamped"],
-        "found": ["Identified", "Detected", "Uncovered", "Discovered"],
-        "used": ["Leveraged", "Utilized", "Deployed", "Harnessed"],
-        "showed": ["Demonstrated", "Exhibited", "Illustrated", "Presented"],
-        "gave": ["Delivered", "Produced", "Provided", "Yielded"],
-        "fixed": ["Resolved", "Troubleshot", "Debugged", "Rectified"],
-        "built": ["Built", "Forged", "Crafted", "Established"],
-        "increased": ["Amplified", "Maximized", "Boosted", "Accelerated"],
-        "reduced": ["Mitigated", "Minimized", "Curtailed", "Decreased"],
-        "saved": ["Economized", "Conserved", "Recovered", "Retained"]
+        "led": "Spearheaded",
+        "did": "Executed",
+        "managed": "Architected",
+        "made": "Engineered",
+        "improved": "Optimized",
+        "changed": "Transformed",
+        "found": "Identified",
+        "used": "Leveraged",
+        "built": "Established",
+        "increased": "Amplified",
+        "reduced": "Mitigated"
     }
 
-    words = []
-    import random
-    
-    for token in doc:
-        text = token.text
-        if token.pos_ == "VERB" and text.lower() in ats_verbs:
-            choices = ats_verbs[text.lower()]
-            if req.format == "impactful":
-                chosen = choices[0]
-            elif req.format == "technical":
-                technical_choices = [c for c in choices if c in ["Engineered", "Developed", "Optimized", "Debugged", "Architected", "Implemented", "Leveraged"]]
-                chosen = technical_choices[0] if technical_choices else choices[0]
-            else:
-                chosen = random.choice(choices)
-                
-            if token.i == 0 or doc[token.i-1].is_punct:
-                text = chosen
-            else:
-                text = chosen.lower()
-        words.append(text + token.whitespace_)
-
-    refined_text = "".join(words).strip()
+    refined_text = req.summary
+    for old, new in ats_verbs.items():
+        # Match word boundaries to avoid replacing parts of words
+        refined_text = re.sub(rf'\b{old}\b', new, refined_text, flags=re.IGNORECASE)
     
     # Structural Formatting based on Mode
     if req.format == "concise":
