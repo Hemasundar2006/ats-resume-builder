@@ -6,11 +6,17 @@ import { PDFDownloadLink } from '@react-pdf/renderer';
 import { ResumePDF } from './components/ResumePDF';
 import { toPng } from 'html-to-image';
 import download from 'downloadjs';
-import { useRef, useEffect } from 'react';
+import { useRef } from 'react';
 import { Analytics } from "@vercel/analytics/react";
 
+void motion;
+
 axios.defaults.baseURL = 'https://ats-resume-builder-7xio.onrender.com';
-const AI_SERVICE_URL = 'http://localhost:8000';
+const AI_SERVICE_URL = import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:8000';
+
+const aiClient = axios.create({
+  baseURL: AI_SERVICE_URL,
+});
 
 const TEMPLATES = [
   { id: 'classic', name: 'Classic ATS', desc: 'Standard serif, high parseability', image: 'template_classic_ats_1773575577224.png' },
@@ -28,9 +34,18 @@ const TEMPLATES = [
 ];
 
 // --- Landing Page Component ---
-const LandingPage = ({ onStart, onAIUpload }) => {
+const LandingPage = ({ onStart, onAIUpload, onScore, onResumeScore }) => {
   const [isUploading, setIsUploading] = React.useState(false);
+  const [aiHealthy, setAiHealthy] = React.useState(true);
   const fileInputRef = React.useRef(null);
+
+  React.useEffect(() => {
+    let mounted = true;
+    aiClient.get('/')
+      .then(() => { if (mounted) setAiHealthy(true); })
+      .catch(() => { if (mounted) setAiHealthy(false); });
+    return () => { mounted = false; };
+  }, []);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -41,7 +56,7 @@ const LandingPage = ({ onStart, onAIUpload }) => {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await axios.post(`${AI_SERVICE_URL}/api/v1/extract`, formData, {
+      const response = await aiClient.post(`/api/v1/extract`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -102,6 +117,15 @@ const LandingPage = ({ onStart, onAIUpload }) => {
           Beat the bots with our AI-powered structuring engine. Craft your resume in real-time or upload your old one to instantly switch to a perfect ATS-friendly layout.
         </motion.p>
 
+        {!aiHealthy && (
+          <div className="mb-8 max-w-2xl w-full rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-left">
+            <p className="text-sm font-bold text-red-200">AI service not reachable.</p>
+            <p className="text-xs text-red-200/80 mt-1">
+              Set <span className="font-mono">VITE_AI_SERVICE_URL</span> or start the Python service (default: {AI_SERVICE_URL}).
+            </p>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row gap-6">
           <input 
             type="file" 
@@ -124,6 +148,34 @@ const LandingPage = ({ onStart, onAIUpload }) => {
             <span className="relative z-10 flex items-center gap-2 font-black italic">
               {isUploading ? <span className="animate-spin text-[#ccff00]"><Zap size={20}/></span> : <Upload size={20} />} 
               {isUploading ? "Reading..." : "Upload & Build with AI"}
+            </span>
+          </motion.button>
+
+          <motion.button
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.9, type: "spring", bounce: 0.5 }}
+            whileHover={{ scale: 1.05, translateY: -5, boxShadow: "0px 20px 40px rgba(0, 255, 204, 0.25)" }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onScore}
+            className="group relative px-10 py-5 bg-transparent text-white font-bold text-xl flex items-center gap-3 overflow-hidden border border-white/20 shadow-xl transition-all rounded-2xl"
+          >
+            <span className="relative z-10 flex items-center gap-2 font-black italic">
+              <CheckCircle size={20} /> Check ATS Score
+            </span>
+          </motion.button>
+
+          <motion.button
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.95, type: "spring", bounce: 0.5 }}
+            whileHover={{ scale: 1.05, translateY: -5, boxShadow: "0px 20px 40px rgba(59, 130, 246, 0.2)" }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onResumeScore}
+            className="group relative px-10 py-5 bg-transparent text-white font-bold text-xl flex items-center gap-3 overflow-hidden border border-white/20 shadow-xl transition-all rounded-2xl"
+          >
+            <span className="relative z-10 flex items-center gap-2 font-black italic">
+              <Star size={20} /> Resume Quality Score
             </span>
           </motion.button>
 
@@ -216,10 +268,359 @@ const TemplateGallery = ({ onSelect, onBack }) => {
   );
 };
 
+// --- ATS Score Page ---
+const ScorePage = ({ onBack }) => {
+  const [file, setFile] = useState(null);
+  const [resumeText, setResumeText] = useState('');
+  const [jobDescription, setJobDescription] = useState('');
+  const [atsResult, setAtsResult] = useState(null);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [isScoring, setIsScoring] = useState(false);
+
+  const inputStyle = "w-full mt-1.5 bg-gray-900/40 border border-gray-700/50 rounded-xl p-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-[#ccff00] focus:border-[#ccff00] outline-none transition-all shadow-inner backdrop-blur-sm";
+  const labelStyle = "text-xs font-bold text-gray-300 uppercase tracking-widest pl-1";
+
+  const handleExtract = async () => {
+    if (!file) return;
+    setIsExtracting(true);
+    setAtsResult(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const resp = await aiClient.post(`/api/v1/extract`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const raw = resp.data?.raw_text || '';
+      setResumeText(raw || JSON.stringify(resp.data, null, 2));
+    } catch (e) {
+      console.error(e);
+      alert('Resume extraction failed. Make sure the AI service is running at ' + AI_SERVICE_URL);
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  const handleScore = async () => {
+    if (!resumeText.trim() || !jobDescription.trim()) return;
+    setIsScoring(true);
+    setAtsResult(null);
+    try {
+      const resp = await aiClient.post(`/api/v1/score`, {
+        resume_text: resumeText,
+        job_description: jobDescription,
+      });
+      setAtsResult(resp.data);
+    } catch (e) {
+      console.error(e);
+      alert('ATS scoring failed. Make sure the AI service is running at ' + AI_SERVICE_URL);
+    } finally {
+      setIsScoring(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-black p-6 md:p-16 overflow-y-auto custom-scrollbar relative text-white">
+      <motion.button
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        onClick={onBack}
+        className="absolute top-6 left-6 md:top-10 md:left-10 flex items-center gap-2 text-gray-400 hover:text-white transition-colors font-bold uppercase tracking-widest text-xs"
+      >
+        <ArrowLeft size={16} /> Back
+      </motion.button>
+
+      <div className="max-w-5xl mx-auto">
+        <motion.div initial={{ opacity: 0, y: -15 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
+          <span className="text-[#ccff00] font-black uppercase tracking-[0.3em] text-xs">ATS Match Checker</span>
+          <h1 className="text-4xl md:text-6xl font-black text-white mt-4 tracking-tighter">
+            Score Your Resume <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ccff00] to-[#00ffcc]">Before Applying</span>
+          </h1>
+          <p className="text-gray-400 text-base md:text-lg mt-4 max-w-3xl mx-auto">
+            Upload your resume, paste a job description, and get a match score with matched/missing keywords.
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="bg-gray-800/20 backdrop-blur-md border border-white/5 rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+            <h2 className="text-xl font-black mb-4">1) Resume</h2>
+            <label className={labelStyle}>Upload (PDF/DOCX)</label>
+            <input
+              type="file"
+              accept=".pdf,.docx"
+              className={inputStyle}
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+            />
+            <div className="mt-4 flex gap-3">
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={handleExtract}
+                disabled={!file || isExtracting}
+                className={`px-5 py-3 rounded-2xl font-black uppercase tracking-widest text-xs transition-all ${
+                  (!file || isExtracting) ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-white text-black'
+                }`}
+              >
+                {isExtracting ? 'Extracting...' : 'Extract Text'}
+              </motion.button>
+            </div>
+
+            <label className={`${labelStyle} mt-6 block`}>Resume text</label>
+            <textarea
+              rows="10"
+              className={`${inputStyle} mt-2 font-mono text-xs`}
+              placeholder="Extracted resume text will appear here (you can also paste manually)."
+              value={resumeText}
+              onChange={(e) => setResumeText(e.target.value)}
+            />
+          </div>
+
+          <div className="bg-gray-800/20 backdrop-blur-md border border-white/5 rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+            <h2 className="text-xl font-black mb-4">2) Job Description</h2>
+            <label className={labelStyle}>Paste job description</label>
+            <textarea
+              rows="10"
+              className={`${inputStyle} mt-2`}
+              placeholder="Paste the job description here..."
+              value={jobDescription}
+              onChange={(e) => setJobDescription(e.target.value)}
+            />
+
+            <div className="mt-5 flex items-center justify-between gap-4">
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={handleScore}
+                disabled={isScoring || !resumeText.trim() || !jobDescription.trim()}
+                className={`px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-xs transition-all ${
+                  (isScoring || !resumeText.trim() || !jobDescription.trim())
+                    ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-[#ccff00] to-[#00ffcc] text-black shadow-[0_0_20px_rgba(204,255,0,0.3)]'
+                }`}
+              >
+                {isScoring ? 'Scoring...' : 'Get Score'}
+              </motion.button>
+
+              {atsResult?.ats_score !== undefined && (
+                <div className="px-5 py-3 rounded-2xl bg-[#ccff00] text-black font-black text-lg">
+                  {atsResult.ats_score}%
+                </div>
+              )}
+            </div>
+
+            {atsResult && (
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                  <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">Matched keywords</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(atsResult.matched_keywords || []).map((k) => (
+                      <span key={k} className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-white">
+                        {k}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                  <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">Missing keywords</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(atsResult.missing_keywords || []).map((k) => (
+                      <span key={k} className="px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-xs font-bold text-red-200">
+                        {k}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- Resume Quality Score (no JD) ---
+const ResumeScorePage = ({ onBack }) => {
+  const [file, setFile] = useState(null);
+  const [resumeText, setResumeText] = useState('');
+  const [result, setResult] = useState(null);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [isScoring, setIsScoring] = useState(false);
+
+  const inputStyle = "w-full mt-1.5 bg-gray-900/40 border border-gray-700/50 rounded-xl p-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-[#ccff00] focus:border-[#ccff00] outline-none transition-all shadow-inner backdrop-blur-sm";
+  const labelStyle = "text-xs font-bold text-gray-300 uppercase tracking-widest pl-1";
+
+  const handleExtract = async () => {
+    if (!file) return;
+    setIsExtracting(true);
+    setResult(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const resp = await aiClient.post(`/api/v1/extract`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setResumeText(resp.data?.raw_text || '');
+    } catch (e) {
+      console.error(e);
+      alert('Resume extraction failed. Make sure the AI service is running at ' + AI_SERVICE_URL);
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  const handleScore = async () => {
+    if (!resumeText.trim()) return;
+    setIsScoring(true);
+    setResult(null);
+    try {
+      const resp = await aiClient.post(`/api/v1/score-standalone`, {
+        resume_text: resumeText,
+      });
+      setResult(resp.data);
+    } catch (e) {
+      console.error(e);
+      alert('Resume scoring failed. Make sure the AI service is running at ' + AI_SERVICE_URL);
+    } finally {
+      setIsScoring(false);
+    }
+  };
+
+  const subs = result?.subscores || {};
+
+  return (
+    <div className="min-h-screen bg-black p-6 md:p-16 overflow-y-auto custom-scrollbar relative text-white">
+      <motion.button
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        onClick={onBack}
+        className="absolute top-6 left-6 md:top-10 md:left-10 flex items-center gap-2 text-gray-400 hover:text-white transition-colors font-bold uppercase tracking-widest text-xs"
+      >
+        <ArrowLeft size={16} /> Back
+      </motion.button>
+
+      <div className="max-w-5xl mx-auto">
+        <motion.div initial={{ opacity: 0, y: -15 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
+          <span className="text-[#ccff00] font-black uppercase tracking-[0.3em] text-xs">Resume Quality</span>
+          <h1 className="text-4xl md:text-6xl font-black text-white mt-4 tracking-tighter">
+            Score Your Resume <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ccff00] to-[#00ffcc]">Without a JD</span>
+          </h1>
+          <p className="text-gray-400 text-base md:text-lg mt-4 max-w-3xl mx-auto">
+            This score uses resume completeness, structure, impact language, skills/keywords, and measurable results.
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="bg-gray-800/20 backdrop-blur-md border border-white/5 rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+            <h2 className="text-xl font-black mb-4">Resume</h2>
+            <label className={labelStyle}>Upload (PDF/DOCX)</label>
+            <input
+              type="file"
+              accept=".pdf,.docx"
+              className={inputStyle}
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+            />
+            <div className="mt-4 flex gap-3">
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={handleExtract}
+                disabled={!file || isExtracting}
+                className={`px-5 py-3 rounded-2xl font-black uppercase tracking-widest text-xs transition-all ${
+                  (!file || isExtracting) ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-white text-black'
+                }`}
+              >
+                {isExtracting ? 'Extracting...' : 'Extract Text'}
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={handleScore}
+                disabled={isScoring || !resumeText.trim()}
+                className={`px-5 py-3 rounded-2xl font-black uppercase tracking-widest text-xs transition-all ${
+                  (isScoring || !resumeText.trim())
+                    ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-[#ccff00] to-[#00ffcc] text-black shadow-[0_0_20px_rgba(204,255,0,0.3)]'
+                }`}
+              >
+                {isScoring ? 'Scoring...' : 'Get Score'}
+              </motion.button>
+            </div>
+
+            <label className={`${labelStyle} mt-6 block`}>Resume text</label>
+            <textarea
+              rows="10"
+              className={`${inputStyle} mt-2 font-mono text-xs`}
+              placeholder="Extracted resume text will appear here (you can also paste manually)."
+              value={resumeText}
+              onChange={(e) => setResumeText(e.target.value)}
+            />
+          </div>
+
+          <div className="bg-gray-800/20 backdrop-blur-md border border-white/5 rounded-3xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+            <h2 className="text-xl font-black mb-4">Results</h2>
+
+            {result?.resume_score !== undefined ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-black uppercase tracking-widest text-gray-400">Overall score</p>
+                  <div className="px-5 py-3 rounded-2xl bg-[#ccff00] text-black font-black text-lg">
+                    {result.resume_score}%
+                  </div>
+                </div>
+
+                <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    ["Contact", subs.contact],
+                    ["Structure", subs.structure],
+                    ["Impact", subs.impact],
+                    ["Skills", subs.skills],
+                    ["Length", subs.length],
+                  ].map(([label, val]) => (
+                    <div key={label} className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                      <p className="text-xs font-black uppercase tracking-widest text-gray-400">{label}</p>
+                      <p className="text-2xl font-black mt-2">{val ?? 0}%</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                    <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">Strengths</p>
+                    <ul className="space-y-2 text-sm text-gray-200">
+                      {(result.signals?.strengths || []).map((s) => (
+                        <li key={s} className="flex gap-2"><CheckCircle size={16} className="text-[#ccff00]" /> {s}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                    <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">Improvements</p>
+                    <ul className="space-y-2 text-sm text-gray-200">
+                      {(result.signals?.issues || []).map((s) => (
+                        <li key={s} className="flex gap-2"><XCircle size={16} className="text-red-300" /> {s}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <p className="text-gray-400 text-sm">
+                Upload/extract or paste your resume text, then click <span className="font-black">Get Score</span>.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 
 // --- Builder Page Component ---
 const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
   const resumeRef = useRef(null);
+  const [jobDescription, setJobDescription] = useState('');
+  const [atsResult, setAtsResult] = useState(null);
+  const [isScoring, setIsScoring] = useState(false);
 
   const downloadImage = async () => {
     if (resumeRef.current === null) return;
@@ -329,8 +730,7 @@ const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
     if (!summary.trim()) return;
     setIsRefining(true);
     try {
-      // Calling the local Python AI service directamente
-      const response = await axios.post(`${AI_SERVICE_URL}/api/v1/refine-summary`, {
+      const response = await aiClient.post(`/api/v1/refine-summary`, {
         summary,
         target_role: experience[0]?.jobTitle || "Professional",
         format: refineFormat
@@ -341,9 +741,53 @@ const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
       }
     } catch (err) {
       console.error('Refinement failed:', err);
-      alert('AI Refinement failed. Please ensure the Python AI service is running at ' + AI_SERVICE_URL);
+      alert('AI Refinement failed. Please ensure the AI service is running at ' + AI_SERVICE_URL);
     } finally {
       setIsRefining(false);
+    }
+  };
+
+  const serializeResumeText = () => {
+    const d = getFormattedData();
+    const parts = [];
+    if (d.personalInfo?.fullName) parts.push(d.personalInfo.fullName);
+    if (d.summary) parts.push(d.summary);
+    if (Array.isArray(d.skills) && d.skills.length) parts.push(`Skills: ${d.skills.join(', ')}`);
+    if (Array.isArray(d.experience)) {
+      d.experience.forEach((e) => {
+        parts.push(`${e.jobTitle || ''} ${e.company || ''} ${e.startDate || ''} ${e.endDate || ''}`.trim());
+        if (Array.isArray(e.description) && e.description.length) parts.push(e.description.join('\n'));
+      });
+    }
+    if (Array.isArray(d.education)) {
+      d.education.forEach((e) => parts.push(`${e.degree || ''} ${e.fieldOfStudy || ''} ${e.institution || ''}`.trim()));
+    }
+    if (Array.isArray(d.projects)) {
+      d.projects.forEach((p) => {
+        parts.push(`${p.title || ''}`.trim());
+        if (Array.isArray(p.technologies) && p.technologies.length) parts.push(`Tech: ${p.technologies.join(', ')}`);
+        if (Array.isArray(p.description) && p.description.length) parts.push(p.description.join('\n'));
+      });
+    }
+    return parts.filter(Boolean).join('\n\n');
+  };
+
+  const handleScoreResume = async () => {
+    if (!jobDescription.trim()) return;
+    setIsScoring(true);
+    setAtsResult(null);
+    try {
+      const resume_text = serializeResumeText();
+      const response = await aiClient.post(`/api/v1/score`, {
+        resume_text,
+        job_description: jobDescription,
+      });
+      setAtsResult(response.data);
+    } catch (err) {
+      console.error('ATS scoring failed:', err);
+      alert('ATS scoring failed. Please ensure the AI service is running at ' + AI_SERVICE_URL);
+    } finally {
+      setIsScoring(false);
     }
   };
 
@@ -455,6 +899,52 @@ const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
         </div>
 
         <div className={`p-4 md:p-8 relative z-10 ${showMobilePreview ? 'hidden md:block' : 'block'}`}>
+          <div className="mb-6 bg-gray-800/20 backdrop-blur-md border border-white/5 rounded-3xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-gray-400">ATS Match</p>
+                <p className="text-sm text-gray-300 mt-1">Paste a job description to get an ATS score.</p>
+              </div>
+              {atsResult?.ats_score !== undefined && (
+                <div className="flex items-center gap-3">
+                  <div className="px-4 py-2 rounded-2xl bg-[#ccff00] text-black font-black text-sm">
+                    {atsResult.ats_score}%
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="mt-4">
+              <textarea
+                rows="4"
+                placeholder="Paste job description here..."
+                className={`${inputStyle} mt-0`}
+                value={jobDescription}
+                onChange={(e) => setJobDescription(e.target.value)}
+              />
+              <div className="mt-3 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+                <div className="text-xs text-gray-400">
+                  {atsResult?.matched_keywords?.length ? (
+                    <span>Matched: <span className="font-black text-gray-200">{atsResult.matched_keywords.length}</span> | Missing: <span className="font-black text-gray-200">{atsResult.missing_keywords?.length || 0}</span></span>
+                  ) : (
+                    <span>Tip: keep it short—1–2 paragraphs works best.</span>
+                  )}
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleScoreResume}
+                  disabled={isScoring || !jobDescription.trim()}
+                  className={`px-5 py-3 rounded-2xl font-black uppercase tracking-widest text-xs transition-all ${
+                    isScoring
+                      ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-[#ccff00] to-[#00ffcc] text-black shadow-[0_0_20px_rgba(204,255,0,0.3)]'
+                  }`}
+                >
+                  {isScoring ? 'Scoring...' : 'Check Score'}
+                </motion.button>
+              </div>
+            </div>
+          </div>
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -622,7 +1112,7 @@ const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
                       {skills.length === 0 && (
                         <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-gray-500 italic w-full text-center py-4">Your technological arsenal awaits...</motion.span>
                       )}
-                      {skills.map((skill, idx) => (
+                      {skills.map((skill) => (
                         <motion.div 
                           key={skill}
                           initial={{ opacity: 0, scale: 0.5, y: 10 }}
@@ -967,7 +1457,7 @@ const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
 
 // --- Main App Logic Switch ---
 export default function App() {
-  const [appState, setAppState] = useState('landing'); // 'landing', 'selection', 'builder'
+  const [appState, setAppState] = useState('landing'); // 'landing', 'selection', 'builder', 'score', 'resume-score'
   const [selectedTemplate, setSelectedTemplate] = useState('classic');
   const [initialResumeData, setInitialResumeData] = useState(null);
 
@@ -985,8 +1475,20 @@ export default function App() {
           <motion.div key="landing" exit={{ opacity: 0, scale: 1.1, filter: "blur(10px)" }} transition={{ duration: 0.5 }}>
             <LandingPage 
               onStart={() => setAppState('selection')} 
+              onScore={() => setAppState('score')}
+              onResumeScore={() => setAppState('resume-score')}
               onAIUpload={handleAIUpload}
             />
+          </motion.div>
+        )}
+        {appState === 'score' && (
+          <motion.div key="score" initial={{ opacity: 0, x: 100 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -100 }}>
+            <ScorePage onBack={() => setAppState('landing')} />
+          </motion.div>
+        )}
+        {appState === 'resume-score' && (
+          <motion.div key="resume-score" initial={{ opacity: 0, x: 100 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -100 }}>
+            <ResumeScorePage onBack={() => setAppState('landing')} />
           </motion.div>
         )}
         {appState === 'selection' && (
