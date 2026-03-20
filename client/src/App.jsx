@@ -18,6 +18,9 @@ const aiClient = axios.create({
   baseURL: AI_SERVICE_URL,
 });
 
+// Protected Gemini API Variable (Secure via Vercel/Vite Env)
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
+
 const TEMPLATES = [
   { id: 'classic', name: 'Classic ATS', desc: 'Standard serif, high parseability', image: 'template_classic_ats_1773575577224.png' },
   { id: 'executive', name: 'Executive', desc: 'Centered header, professional borders', image: 'template_executive_pro_1773575594518.png' },
@@ -645,7 +648,7 @@ const BuilderPage = ({ selectedTemplate, setSelectedTemplate, initialData, onBac
       const pageHeight = Math.floor((canvasWidth / 210) * 297);
       const totalPages = Math.ceil(canvasHeight / pageHeight);
       
-      const fileNameBase = `${dataPayload.personalInfo.fullName.replace(/\s+/g, '_') || 'Resume'}_${dataPayload.experience[0]?.jobTitle.replace(/\s+/g, '_') || 'Professional'}_ResuSolve`;
+      const fileNameBase = `${(personalInfo.fullName || 'Resume').replace(/[^a-zA-Z0-9._-]/g, '_')}_${(personalInfo.role || 'Profile').replace(/[^a-zA-Z0-9._-]/g, '_')}_ResuSolve`;
 
       if (totalPages <= 1) {
         // Just download the single page if it fits
@@ -690,7 +693,7 @@ const BuilderPage = ({ selectedTemplate, setSelectedTemplate, initialData, onBac
   const [activeTab, setActiveTab] = useState('personal');
 
   // Schema States
-  const [personalInfo, setPersonalInfo] = useState(initialData?.personalInfo || { fullName: '', email: '', phone: '', linkedin: '', github: '', portfolio: '' });
+  const [personalInfo, setPersonalInfo] = useState(initialData?.personalInfo || { fullName: '', role: '', email: '', phone: '', linkedin: '', github: '', portfolio: '' });
   const [summary, setSummary] = useState(initialData?.summary || '');
   
   // Normalize array-based descriptions to newline strings for the UI
@@ -721,23 +724,90 @@ const BuilderPage = ({ selectedTemplate, setSelectedTemplate, initialData, onBac
   const [showMobilePreview, setShowMobilePreview] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
   const [refineFormat, setRefineFormat] = useState('balanced');
+  const [lastRefineTime, setLastRefineTime] = useState(0);
+  const [refineCache, setRefineCache] = useState({});
 
   const handleRefineSummary = async () => {
-    if (!summary.trim()) return;
-    setIsRefining(true);
+    if (!summary.trim() || isRefining) return;
+    
+    // Check Cooldown (15 seconds)
+    const now = Date.now();
+    if (now - lastRefineTime < 15000) {
+      alert(`Please wait ${Math.ceil((15000 - (now - lastRefineTime)) / 1000)}s before next refinement to save quota.`);
+      return;
+    }
+
+    // Check Cache
+    const cacheKey = `${summary.substring(0, 50)}_${refineFormat}`;
+    if (refineCache[cacheKey]) {
+      setSummary(refineCache[cacheKey]);
+      return;
+    }
+
     try {
-      const response = await aiClient.post(`/api/v1/refine-summary`, {
-        summary,
-        target_role: experience[0]?.jobTitle || "Professional",
-        format: refineFormat
-      });
+      const targetRole = personalInfo.role || experience[0]?.jobTitle || "Professional";
+      const prompt = `
+        PRIMARY TASK: Transform this professional summary into a high-impact, ATS-optimized narrative.
+        TARGET ROLE: ${targetRole}
+        REFINEMENT MODE: ${refineFormat}
+        
+        STRICT CONSTRAINTS:
+        1. NO first-person pronouns (I, me, my, mine).
+        2. Use powerful action verbs (e.g., "Spearheaded", "Engineered", "Optimized").
+        3. Seamlessly integrate high-relevance keywords for a ${targetRole} position.
+        4. Output ONLY the refined text. No introductory remarks, no quotes, no markdown blocks.
+        
+        EXISTING TEXT:
+        "${summary}"
+      `;
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+          })
+        }
+      );
+
+      // Handle Quota or other failures by falling back
+      if (!response.ok) {
+        throw new Error('Gemini API Unavailable, Falling back...');
+      }
+
+      const data = await response.json();
+      let refined = data.candidates?.[0]?.content?.parts?.[0]?.text;
       
-      if (response.data.refined_summary) {
-        setSummary(response.data.refined_summary);
+      if (refined) {
+        // Clean up markdown or quotes
+        refined = refined.replace(/```[a-z]*|```|^["']|["']$/g, "").trim();
+        if (!refined.endsWith(".")) refined += ".";
+        
+        // Update Cache and State
+        setRefineCache(prev => ({ ...prev, [cacheKey]: refined }));
+        setSummary(refined);
+        setLastRefineTime(Date.now());
       }
     } catch (err) {
-      console.error('Refinement failed:', err);
-      alert('AI Refinement failed. Please ensure the AI service is running at ' + AI_SERVICE_URL);
+      console.warn('Gemini Service unavailable. Using Secondary API Fallback.');
+      try {
+        // FALLBACK: Use our backend refinement API (Local Fallback)
+        const response = await aiClient.post(`/api/v1/refine-summary`, {
+          summary,
+          target_role: personalInfo.role || experience[0]?.jobTitle || "Professional",
+          format: refineFormat
+        });
+        
+        if (response.data.refined_summary) {
+          setSummary(response.data.refined_summary);
+          setLastRefineTime(Date.now());
+        }
+      } catch (innerErr) {
+        console.error('All Refinement services failed:', innerErr);
+        alert('All refinement services are currently busy. Please try again later.');
+      }
     } finally {
       setIsRefining(false);
     }
@@ -977,7 +1047,15 @@ const BuilderPage = ({ selectedTemplate, setSelectedTemplate, initialData, onBac
                 <div>
                   <h2 className="text-2xl font-black mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-indigo-200">Personal Information</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    {[{ label: "Full Name", field: "fullName", type: "text", p: "John Doe" }, { label: "Email Address", field: "email", type: "email", p: "john@example.com" }, { label: "Phone Number", field: "phone", type: "text", p: "(555) 123-4567" }, { label: "LinkedIn URL", field: "linkedin", type: "text", p: "linkedin.com/..." }, { label: "GitHub URL", field: "github", type: "text", p: "github.com/..." }, { label: "Portfolio URL", field: "portfolio", type: "text", p: "johndoe.com" }].map((item, idx) => (
+                    {[
+                      { label: "Full Name", field: "fullName", type: "text", p: "John Doe" },
+                      { label: "Role / Job Title", field: "role", type: "text", p: "Software Engineer" },
+                      { label: "Email Address", field: "email", type: "email", p: "john@example.com" },
+                      { label: "Phone Number", field: "phone", type: "text", p: "09666180813" },
+                      { label: "LinkedIn URL", field: "linkedin", type: "text", p: "linkedin.com/..." },
+                      { label: "GitHub URL", field: "github", type: "text", p: "github.com/..." },
+                      { label: "Portfolio URL", field: "portfolio", type: "text", p: "johndoe.com" }
+                    ].map((item, idx) => (
                       <div key={idx} className="flex flex-col">
                         <label className={labelStyle}>{item.label}</label>
                         <input type={item.type} placeholder={item.p} className={inputStyle} value={personalInfo[item.field]} onChange={(e) => setPersonalInfo({...personalInfo, [item.field]: e.target.value})} />
@@ -1557,7 +1635,7 @@ const BuilderPage = ({ selectedTemplate, setSelectedTemplate, initialData, onBac
           <div className="flex flex-col sm:flex-row gap-4 w-full max-w-[210mm]">
             <PDFDownloadLink 
               document={<ResumePDF data={dataPayload} templateId={selectedTemplate} />} 
-              fileName={`${dataPayload.personalInfo.fullName.replace(/\s+/g, '_') || 'Resume'}_${dataPayload.experience[0]?.jobTitle.replace(/\s+/g, '_') || 'Professional'}_ResuSolve.pdf`}
+              fileName={`${(personalInfo.fullName || 'Resume').replace(/[^a-zA-Z0-9._-]/g, '_')}_${(personalInfo.role || 'Profile').replace(/[^a-zA-Z0-9._-]/g, '_')}_ResuSolve.pdf`}
               className="flex-1 h-14 flex items-center justify-center gap-3 bg-gradient-to-t from-gray-900 via-gray-800 to-gray-700 text-white text-sm rounded-2xl shadow-xl font-black uppercase tracking-wider backdrop-blur-md transition-all group border border-white/10"
             >
               {({ loading }) => (
@@ -1587,12 +1665,12 @@ const BuilderPage = ({ selectedTemplate, setSelectedTemplate, initialData, onBac
 // --- Main App Logic Switch ---
 export default function App() {
   const [appState, setAppState] = useState('landing'); // 'landing', 'selection', 'builder', 'score', 'resume-score'
-  const [selectedTemplate, setSelectedTemplate] = useState('classic');
+  const [selectedTemplate, setSelectedTemplate] = useState('ats_pro');
   const [initialResumeData, setInitialResumeData] = useState(null);
 
   const handleAIUpload = (data) => {
     setInitialResumeData(data);
-    setSelectedTemplate(data.selectedTemplate || 'classic');
+    setSelectedTemplate(data.selectedTemplate || 'ats_pro');
     setAppState('builder');
   };
 

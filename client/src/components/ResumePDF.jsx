@@ -2,8 +2,8 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
 
 const getStyles = (templateId) => {
-  const baseColors = {
-    classic: { primary: '#000000', text: '#222222', accent: '#000000', bg: '#ffffff' },
+    const baseColors = {
+        classic: { primary: '#000000', text: '#222222', accent: '#000000', bg: '#ffffff' },
     executive: { primary: '#000000', text: '#333333', accent: '#000000', bg: '#ffffff' },
     modern: { primary: '#2563eb', text: '#374151', accent: '#60a5fa', bg: '#ffffff' },
     sidebar: { primary: '#1e293b', text: '#334155', accent: '#3b82f6', bg: '#f8fafc' },
@@ -22,11 +22,11 @@ const getStyles = (templateId) => {
 
   return StyleSheet.create({
     page: { 
-      padding: templateId === 'sidebar' ? 0 : 40, 
+      padding: templateId === 'sidebar' ? 0 : 30, 
       fontFamily: 'Helvetica', 
       fontSize: 10, 
       color: color.text, 
-      lineHeight: 1.4,
+      lineHeight: 1.5,
       backgroundColor: '#ffffff'
     },
     // Sidebar Specific
@@ -50,7 +50,7 @@ const getStyles = (templateId) => {
     headerAts_pro: { marginBottom: 15, textAlign: 'center', alignItems: 'center', width: '100%' },
     headerAts_modern: { marginBottom: 15, flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1.5, borderBottomColor: '#000', paddingBottom: 10 },
     
-    nameClassic: { fontSize: 22, fontWeight: 'bold', marginBottom: 10, color: color.primary },
+    nameClassic: { fontSize: 24, fontWeight: 'bold', marginBottom: 8, color: '#000', textTransform: 'uppercase' },
     nameExecutive: { fontSize: 20, fontWeight: 'bold', marginBottom: 8, textTransform: 'uppercase', color: color.primary },
     nameModern: { fontSize: 28, fontWeight: 'bold', marginBottom: 8, color: '#2563eb' },
     nameSidebar: { fontSize: 20, fontWeight: 'bold', marginBottom: 12, color: '#ffffff' },
@@ -61,7 +61,7 @@ const getStyles = (templateId) => {
     nameCreative: { fontSize: 32, fontWeight: 'black', color: color.primary, letterSpacing: -1, marginBottom: 15 },
     nameHealthcare: { fontSize: 20, fontWeight: 'bold', color: color.primary, marginBottom: 10 },
     nameSales: { fontSize: 22, fontWeight: 'black', textTransform: 'uppercase', color: color.primary, marginBottom: 12 },
-    nameAts_pro: { fontSize: 22, fontWeight: 'bold', marginBottom: 2, color: '#000000' },
+    nameAts_pro: { fontSize: 24, fontWeight: 'bold', marginBottom: 8, color: '#000', textTransform: 'uppercase' },
     nameAts_modern: { fontSize: 18, fontWeight: 'bold', color: '#000000' },
     
     subtitleModern: { fontSize: 12, color: '#666', marginBottom: 4 },
@@ -77,8 +77,9 @@ const getStyles = (templateId) => {
     summary: { marginBottom: 10, fontSize: 10 },
     
     sectionHeaderClassic: { 
-      fontSize: 12, fontWeight: 'bold', marginTop: 10, marginBottom: 6, 
-      borderBottomWidth: 1.5, borderBottomColor: '#000', paddingBottom: 2, textTransform: 'uppercase' 
+      fontSize: 11, fontWeight: 'bold', marginTop: 12, marginBottom: 8, 
+      backgroundColor: '#EEEEEE', color: '#000000', paddingVertical: 3, paddingHorizontal: 6,
+      textTransform: 'uppercase', width: '100%'
     },
     sectionHeaderExecutive: { 
       fontSize: 11, fontWeight: 'bold', marginTop: 12, marginBottom: 8, 
@@ -125,12 +126,12 @@ const getStyles = (templateId) => {
     },
 
     // Layout blocks
-    itemGroup: { marginBottom: 8 },
+    itemGroup: { marginBottom: 6 },
     row: { 
       flexDirection: 'row', 
       justifyContent: 'space-between', 
-      alignItems: 'flex-start',
-      marginBottom: 2 
+      alignItems: 'baseline',
+      marginBottom: 1 
     },
     titleContainer: { flex: 1, paddingRight: 10 },
     
@@ -143,8 +144,8 @@ const getStyles = (templateId) => {
       marginBottom: 1, 
       paddingLeft: templateId === 'sidebar' ? 0 : 8 
     },
-    bulletPoint: { width: 8, fontSize: 10, marginRight: 2 },
-    bulletText: { flex: 1, fontSize: 9, lineHeight: 1.4, textAlign: 'justify' },
+    bulletPoint: { width: 10, fontSize: 10, marginRight: 2 },
+    bulletText: { flex: 1, fontSize: 10, lineHeight: 1.5, textAlign: 'left' },
 
     skillsBlock: { marginTop: 12 },
     
@@ -189,7 +190,7 @@ export const ResumePDF = ({ data, templateId = 'classic' }) => {
       <View style={headerStyle}>
         {contacts.map((c, i) => (
           <Text key={i} style={styles.contactItem}>
-            {c.label}{c.value}{i < contacts.length - 1 && '  |  '}
+            {c.label}{c.value}{i < contacts.length - 1 && '    |    '}
           </Text>
         ))}
       </View>
@@ -264,7 +265,9 @@ export const ResumePDF = ({ data, templateId = 'classic' }) => {
                   <Text style={styles.modernDate}>{proj.title}</Text>
                 </View>
                 <View style={styles.modernRight}>
-                  <Text style={styles.boldText}>Academic Project</Text>
+                  {proj.technologies && proj.technologies.length > 0 && (
+                    <Text style={{ fontSize: 8, color: '#444', marginBottom: 2 }}>Tech: {proj.technologies.join(', ')}</Text>
+                  )}
                   {proj.description && proj.description.map((line, j) => (
                     <View key={j} style={styles.bullet}>
                       <Text style={styles.bulletPoint}>•</Text>
@@ -279,10 +282,13 @@ export const ResumePDF = ({ data, templateId = 'classic' }) => {
                   <View style={styles.titleContainer}>
                     <Text style={styles.boldText}>{proj.title}</Text>
                   </View>
-                  <Text style={[styles.dateText, {fontSize: 8, color: '#3b82f6'}]}>{
-                    proj.link ? (proj.link.length > 30 ? proj.link.substring(0, 27) + "..." : proj.link) : ""
-                  }</Text>
+                  <Text style={[styles.dateText, {fontSize: 8, color: '#3b82f6'}]}>
+                    {proj.link ? (proj.link.length > 30 ? proj.link.substring(0, 27) + "..." : proj.link) : ""}
+                  </Text>
                 </View>
+                {proj.technologies && proj.technologies.length > 0 && (
+                  <Text style={{ fontSize: 8, color: '#555', marginBottom: 2, fontStyle: 'italic' }}>Technologies: {proj.technologies.join(', ')}</Text>
+                )}
                 {proj.description && proj.description.map((line, j) => (
                   <View key={j} style={styles.bullet}>
                     <Text style={styles.bulletPoint}>•</Text>
@@ -370,10 +376,20 @@ export const ResumePDF = ({ data, templateId = 'classic' }) => {
         </>
       )}
 
-      {templateId === 'ats_modern' && data.achievements && data.achievements.length > 0 && (
+      {templateId === 'ats_modern' && (
         <View>
           {renderSectionHeader('ADDITIONAL INFORMATION')}
-          {data.achievements.map((ach, i) => (
+          {data.certifications && data.certifications.length > 0 && (
+            <View style={styles.modernRow}>
+              <View style={styles.modernLeft}>
+                <Text style={styles.modernDate}>Certifications</Text>
+              </View>
+              <View style={styles.modernRight}>
+                <Text style={{ fontSize: 9 }}>{data.certifications.join(', ')}</Text>
+              </View>
+            </View>
+          )}
+          {data.achievements && data.achievements.map((ach, i) => (
             <View key={i} style={styles.modernRow}>
               <View style={styles.modernLeft}>
                 <Text style={styles.modernDate}>Award/Info</Text>
