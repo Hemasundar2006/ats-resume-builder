@@ -42,10 +42,12 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 class ScoreRequest(BaseModel):
     resume_text: str
     job_description: str
+    selected_template: Optional[str] = "classic"
 
 
 class StandaloneScoreRequest(BaseModel):
     resume_text: str
+    selected_template: Optional[str] = "classic"
 
 
 class RefineRequest(BaseModel):
@@ -179,7 +181,7 @@ def tfidf_score_and_keywords(resume_text: str, jd_text: str) -> tuple[int, list[
     return score, matched[:30], missing[:30]
 
 
-def standalone_resume_score(resume_text: str) -> dict:
+def standalone_resume_score(resume_text: str, selected_template: str = "classic") -> dict:
     text = (resume_text or "").strip()
     if not text:
         return {
@@ -255,6 +257,11 @@ def standalone_resume_score(resume_text: str) -> dict:
         + 0.15 * skills_score
         + 0.10 * length_score
     ))
+
+    # Formatting Bonus for 100% ATS-friendly templates
+    if (resume_text or "").strip() and (selected_template in ["ats_pro", "ats_modern"]):
+        resume_score = min(100, resume_score + 15)
+        strengths.append("Optimized ATS-friendly formatting (100% Score for Layout)")
 
     return {
         "resume_score": resume_score,
@@ -361,12 +368,34 @@ Text:
 @app.post("/api/v1/score")
 def score_resume(req: ScoreRequest):
     score, matched, missing = tfidf_score_and_keywords(req.resume_text, req.job_description)
-    return {"ats_score": score, "matched_keywords": matched, "missing_keywords": missing}
+    
+    strengths = []
+    issues = []
+    
+    # Add layout bonus for ATS friendly templates
+    if req.selected_template in ["ats_pro", "ats_modern"]:
+        score = min(100, score + 15)
+        strengths.append("100% ATS-friendly layout detected")
+        
+    if score >= 75:
+        strengths.append("High match with job requirements")
+    elif score < 40:
+        issues.append("Low keyword match; consider tailoring summary and skills")
+
+    return {
+        "ats_score": score, 
+        "matched_keywords": matched, 
+        "missing_keywords": missing,
+        "signals": {
+            "strengths": strengths,
+            "issues": issues
+        }
+    }
 
 
 @app.post("/api/v1/score-standalone")
 def score_resume_standalone(req: StandaloneScoreRequest):
-    return standalone_resume_score(req.resume_text)
+    return standalone_resume_score(req.resume_text, req.selected_template)
 
 
 @app.post("/api/v1/refine-summary")

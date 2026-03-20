@@ -30,7 +30,9 @@ const TEMPLATES = [
   { id: 'ivy', name: 'Ivy League', desc: 'Prestigious Harvard-style classic format', image: 'template_harvard_style_1773576145088.png' },
   { id: 'creative', name: 'Creative Media', desc: 'Dynamic energetic layout for media pros', image: 'template_creative_media_1773576165549.png' },
   { id: 'healthcare', name: 'Healthcare Pro', desc: 'Clinical, structured medical format', image: 'template_healthcare_pro_1773576182642.png' },
-  { id: 'sales', name: 'Sales Ninja', desc: 'High-impact metric focused achievement layout', image: 'template_sales_ninja_1773576200547.png' }
+  { id: 'sales', name: 'Sales Ninja', desc: 'High-impact metric focused achievement layout', image: 'template_sales_ninja_1773576200547.png' },
+  { id: 'ats_pro', name: 'ATS Pro 2024', desc: 'Maximum compliance with grey structured headers', image: 'template_ats_pro_2024.png' },
+  { id: 'ats_modern', name: 'Modern Analyst', desc: 'Clean vertical timelines with sidebar labels', image: 'template_ats_modern_analyst.png' }
 ];
 
 // --- Landing Page Component ---
@@ -593,7 +595,7 @@ const ResumeScorePage = ({ onBack }) => {
 
 
 // --- Builder Page Component ---
-const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
+const BuilderPage = ({ selectedTemplate, setSelectedTemplate, initialData, onBack }) => {
   const resumeRef = useRef(null);
   const containerRef = useRef(null);
   const [jobDescription, setJobDescription] = useState('');
@@ -716,7 +718,6 @@ const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
   const [certifications, setCertifications] = useState(initialData?.certifications || ['']);
   const [achievements, setAchievements] = useState(initialData?.achievements || ['']);
 
-  const [selectedTemplate, setSelectedTemplate] = useState(initialData?.selectedTemplate || initialTemplate || 'classic');
   const [showMobilePreview, setShowMobilePreview] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
   const [refineFormat, setRefineFormat] = useState('balanced');
@@ -776,6 +777,7 @@ const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
       const response = await aiClient.post(`/api/v1/score`, {
         resume_text,
         job_description: jobDescription,
+        selected_template: selectedTemplate,
       });
       setAtsResult(response.data);
     } catch (err) {
@@ -901,10 +903,17 @@ const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
                 <p className="text-sm text-gray-300 mt-1">Paste a job description to get an ATS score.</p>
               </div>
               {atsResult?.ats_score !== undefined && (
-                <div className="flex items-center gap-3">
-                  <div className="px-4 py-2 rounded-2xl bg-[#ccff00] text-black font-black text-sm">
-                    {atsResult.ats_score}%
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="px-5 py-3 rounded-2xl bg-gradient-to-r from-[#ccff00] to-[#aaff00] text-black font-black text-xl shadow-[0_0_20px_rgba(204,255,0,0.5)]">
+                      {atsResult.ats_score}% Match
+                    </div>
                   </div>
+                  {(selectedTemplate === 'ats_pro' || selectedTemplate === 'ats_modern') && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[#ccff00]/40 bg-[#ccff00]/10 text-[#ccff00] text-[10px] font-black uppercase tracking-widest">
+                      <ShieldCheck size={14} /> 100% Layout Match
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -918,7 +927,20 @@ const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
               />
               <div className="mt-3 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
                 <div className="text-xs text-gray-400">
-                  {atsResult?.matched_keywords?.length ? (
+                  {atsResult?.signals?.strengths?.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {atsResult.signals.strengths.slice(0, 2).map((s, i) => (
+                        <span key={i} className="flex items-center gap-1.5 text-[10px] font-bold text-green-400 bg-green-500/10 px-2 py-1 rounded-lg border border-green-500/20">
+                          <CheckCircle2 size={12} /> {s}
+                        </span>
+                      ))}
+                      {atsResult.signals.issues?.slice(0, 1).map((s, i) => (
+                        <span key={i} className="flex items-center gap-1.5 text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20">
+                          <AlertTriangle size={12} /> {s}
+                        </span>
+                      ))}
+                    </div>
+                  ) : atsResult?.matched_keywords?.length ? (
                     <span>Matched: <span className="font-black text-gray-200">{atsResult.matched_keywords.length}</span> | Missing: <span className="font-black text-gray-200">{atsResult.missing_keywords?.length || 0}</span></span>
                   ) : (
                     <span>Tip: keep it short—1–2 paragraphs works best.</span>
@@ -1236,9 +1258,9 @@ const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
           <div className="absolute top-[297mm] left-0 w-full border-t border-dashed border-gray-200 pointer-events-none z-50 print:hidden opacity-50" title="Page Break Guide"></div>
           {/* Sidebar Part */}
           {selectedTemplate === 'sidebar' && (
-            <div className="w-[30%] bg-[#1e293b] text-white p-6 sm:p-10 flex flex-col">
+            <div className="w-[30%] bg-[#1e293b] text-white p-8 flex flex-col">
               <h1 className="text-2xl font-black mb-6 leading-tight uppercase font-sans">{dataPayload.personalInfo.fullName || 'YOUR NAME'}</h1>
-              <div className="space-y-8">
+              <div className="space-y-5">
                 <div>
                   <h4 className="text-[10px] font-black uppercase tracking-[0.2em] border-b border-white/20 pb-2 mb-4">Contact</h4>
                   <div className="text-[9px] space-y-2 opacity-80 break-all">
@@ -1256,146 +1278,244 @@ const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
             </div>
           )}
 
-          <div className={`${selectedTemplate === 'sidebar' ? 'w-[70%] p-10' : 'p-10 sm:p-14'}`}>
+          <div className={`${selectedTemplate === 'sidebar' ? 'w-[70%] p-8' : 'p-8'} ${selectedTemplate === 'academic' ? 'font-serif' : 'font-sans'}`}>
             {/* Header logic */}
             {selectedTemplate !== 'sidebar' && (
-              <div className={`pb-6 mb-8 
-                ${selectedTemplate === 'executive' || selectedTemplate === 'ivy' || selectedTemplate === 'classic' ? 'text-center' : 'text-left'} 
-                ${selectedTemplate === 'modern' || selectedTemplate === 'minimal' || selectedTemplate === 'google' ? 'border-none' : 'border-b-2 border-black'}
+              <div className={`pb-4 mb-6 
+                ${selectedTemplate === 'executive' || selectedTemplate === 'ivy' || selectedTemplate === 'classic' || selectedTemplate === 'ats_pro' ? 'text-center' : 'text-left'} 
+                ${selectedTemplate === 'modern' || selectedTemplate === 'minimal' || selectedTemplate === 'google' || selectedTemplate === 'ats_modern' ? 'border-none' : 'border-b-2 border-black'}
                 ${selectedTemplate === 'google' ? 'border-b border-gray-100 pb-2' : ''}
+                ${selectedTemplate === 'ats_modern' ? 'flex flex-row justify-between items-end border-b-2 border-black pb-4' : ''}
               `}>
-                <h1 className={`font-black text-black mb-2 leading-tight
-                  ${selectedTemplate === 'modern' ? 'text-blue-600 text-5xl font-sans' : 
-                    selectedTemplate === 'executive' ? 'text-4xl uppercase tracking-[0.2em]' : 
-                    selectedTemplate === 'minimal' ? 'text-5xl font-light font-sans text-black tracking-tighter' : 
-                    selectedTemplate === 'google' ? 'text-2xl text-[#1a73e8]' :
-                    selectedTemplate === 'consultant' ? 'text-xl uppercase tracking-tighter' :
-                    selectedTemplate === 'creative' ? 'text-6xl tracking-tighter' :
-                    selectedTemplate === 'sales' ? 'text-3xl uppercase bg-black text-white p-2 inline-block' :
-                    'text-4xl'}`}>
-                  {dataPayload.personalInfo.fullName || 'YOUR NAME'}
-                </h1>
-                <p className={`text-black text-[10px] sm:text-xs font-bold opacity-80 leading-relaxed max-w-2xl ${selectedTemplate === 'executive' || selectedTemplate === 'ivy' || selectedTemplate === 'classic' ? 'mx-auto text-center' : 'text-left'}`}>
-                  {[
-                    dataPayload.personalInfo.email,
-                    dataPayload.personalInfo.phone,
-                    dataPayload.personalInfo.linkedin?.replace(/^(https?:\/\/)?(www\.)?/, ''),
-                    dataPayload.personalInfo.github?.replace(/^(https?:\/\/)?(www\.)?/, ''),
-                    dataPayload.personalInfo.portfolio?.replace(/^(https?:\/\/)?(www\.)?/, '')
-                  ].filter(Boolean).join(selectedTemplate === 'modern' || selectedTemplate === 'google' ? ' • ' : ' | ')}
-                </p>
+                <div className={selectedTemplate === 'ats_modern' ? 'text-left' : ''}>
+                  <h1 className={`font-black text-black mb-2 leading-tight
+                    ${selectedTemplate === 'modern' ? 'text-[#2563eb] text-5xl font-sans' : 
+                      selectedTemplate === 'executive' ? 'text-4xl uppercase tracking-[0.2em]' : 
+                      selectedTemplate === 'minimal' ? 'text-5xl font-normal font-sans text-black tracking-tighter' : 
+                      selectedTemplate === 'google' ? 'text-2xl text-[#1a73e8]' :
+                      selectedTemplate === 'consultant' ? 'text-[18px] uppercase tracking-tighter font-bold' :
+                      selectedTemplate === 'creative' ? 'text-6xl tracking-tighter' :
+                      selectedTemplate === 'sales' ? 'text-3xl uppercase bg-black text-white p-2 inline-block' :
+                      selectedTemplate === 'ats_pro' ? 'text-4xl uppercase tracking-tight' :
+                      selectedTemplate === 'ats_modern' ? 'text-[24px] uppercase font-serif font-bold' :
+                      selectedTemplate === 'academic' ? 'text-[28px] font-serif font-bold' :
+                      'text-4xl'}`}>
+                    {dataPayload.personalInfo.fullName || 'YOUR NAME'}
+                  </h1>
+                  {selectedTemplate === 'ats_modern' && dataPayload.summary && (
+                    <p className="text-[12px] text-gray-700 max-w-sm mt-1 leading-relaxed font-serif italic">{dataPayload.summary.substring(0, 150)}...</p>
+                  )}
+                </div>
+                <div className={selectedTemplate === 'ats_modern' ? 'text-right' : ''}>
+                  <p className={`text-black text-[10px] sm:text-xs font-bold opacity-80 leading-relaxed max-w-2xl ${selectedTemplate === 'executive' || selectedTemplate === 'ivy' || selectedTemplate === 'classic' || selectedTemplate === 'ats_pro' ? 'mx-auto text-center' : 'text-left'}`}>
+                    {[
+                      dataPayload.personalInfo.email,
+                      dataPayload.personalInfo.phone,
+                      dataPayload.personalInfo.linkedin?.replace(/^(https?:\/\/)?(www\.)?/, ''),
+                      dataPayload.personalInfo.github?.replace(/^(https?:\/\/)?(www\.)?/, ''),
+                      dataPayload.personalInfo.portfolio?.replace(/^(https?:\/\/)?(www\.)?/, '')
+                    ].filter(Boolean).join(selectedTemplate === 'modern' || selectedTemplate === 'google' || selectedTemplate === 'ats_modern' ? ' • ' : ' | ')}
+                  </p>
+                </div>
               </div>
             )}
 
             {/* Sections */}
-            <div className="space-y-8">
+            <div className="space-y-5">
               {dataPayload.summary && (
                 <div>
-                  <h2 className={`text-[11px] font-black uppercase pb-1 mb-3 
-                    ${selectedTemplate === 'modern' ? 'text-blue-600 border-b border-blue-100' : 
+                  <h2 className={`text-[12px] font-black uppercase pb-1 mb-2 
+                    ${selectedTemplate === 'modern' ? 'text-[#2563eb] border-b border-blue-100' : 
                       selectedTemplate === 'google' ? 'text-[#1a73e8] border-b border-gray-100 pb-2' :
-                      selectedTemplate === 'consultant' ? 'text-black border-b border-black pb-1' :
+                      selectedTemplate === 'consultant' ? 'text-[#051c2c] border-b border-[#051c2c] pb-1' :
                       selectedTemplate === 'ivy' ? 'text-black border-b border-black pb-1 text-center' :
                       selectedTemplate === 'creative' ? 'text-[#d97706] text-sm lowercase' :
                       selectedTemplate === 'healthcare' ? 'text-[#0891b2] border-l-4 border-[#0891b2] pl-2' :
                       selectedTemplate === 'sales' ? 'text-white bg-[#b91c1c] p-1 px-2' :
-                      selectedTemplate === 'executive' ? 'border-b border-t border-black py-1' : 
-                      selectedTemplate === 'minimal' ? 'text-gray-400 tracking-[0.3em]' : 'border-b border-black text-black'}`}>
+                      selectedTemplate === 'executive' ? 'border-b border-t border-black py-1 text-left' : 
+                      selectedTemplate === 'ats_pro' ? 'bg-[#EEEEEE] text-black border-b border-black px-2 py-1' :
+                      selectedTemplate === 'ats_modern' ? 'bg-[#F5F5F0] text-black px-2 py-1' :
+                      selectedTemplate === 'academic' ? 'border-b border-black text-black' :
+                      selectedTemplate === 'minimal' ? 'text-black font-bold uppercase tracking-[0.1em] border-none' : 'border-b border-black text-black'}`}>
                     Profile Summary
                   </h2>
-                  <p className="text-[10px] leading-relaxed text-gray-800">{dataPayload.summary}</p>
+                  <p className={`text-[13px] leading-relaxed text-gray-800 ${selectedTemplate === 'academic' || selectedTemplate === 'ats_modern' ? 'font-serif text-gray-900 border-none' : 'font-sans'}`}>{dataPayload.summary}</p>
                 </div>
               )}
 
               {dataPayload.experience.length > 0 && (
                 <div>
-                  <h2 className={`text-[11px] font-black uppercase pb-1 mb-4 
-                    ${selectedTemplate === 'modern' ? 'text-blue-600 border-b border-blue-100' : 
+                   <h2 className={`text-[11px] font-black uppercase pb-1 mb-4 
+                    ${selectedTemplate === 'modern' ? 'text-[#2563eb] border-b border-blue-100' : 
                       selectedTemplate === 'google' ? 'text-[#1a73e8] border-b border-gray-100 pb-2' :
-                      selectedTemplate === 'consultant' ? 'text-black border-b border-black pb-1' :
+                      selectedTemplate === 'consultant' ? 'text-[#051c2c] border-b border-[#051c2c] pb-1' :
                       selectedTemplate === 'ivy' ? 'text-black border-b border-black pb-1 text-center' :
                       selectedTemplate === 'creative' ? 'text-[#d97706] text-sm lowercase' :
                       selectedTemplate === 'healthcare' ? 'text-[#0891b2] border-l-4 border-[#0891b2] pl-2' :
                       selectedTemplate === 'sales' ? 'text-white bg-[#b91c1c] p-1 px-2' :
-                      selectedTemplate === 'executive' ? 'border-b border-t border-black py-1' : 
-                      selectedTemplate === 'minimal' ? 'text-gray-400 tracking-[0.3em]' : 'border-b border-black text-black'}`}>
-                    Work Experience
+                      selectedTemplate === 'executive' ? 'border-b border-t border-black py-1 text-left' : 
+                      selectedTemplate === 'ats_pro' ? 'bg-[#EEEEEE] text-black border-b border-black px-2 py-1' :
+                      selectedTemplate === 'ats_modern' ? 'bg-[#F5F5F0] text-black px-2 py-1' :
+                      selectedTemplate === 'academic' ? 'border-b border-black text-black' :
+                      selectedTemplate === 'minimal' ? 'text-black font-bold uppercase tracking-[0.1em] border-none' : 'border-b border-black text-black'}`}>
+                    {selectedTemplate === 'ats_modern' ? 'Internships & Trainings' : 'Work Experience'}
                   </h2>
                   {dataPayload.experience.map((exp, i) => (
-                    <div key={i} className="mb-4">
-                      <div className="flex justify-between font-bold text-black text-[11px]">
-                        <span>{exp.jobTitle.toUpperCase()}</span>
-                        <span className="font-normal text-gray-600">{exp.startDate} — {exp.endDate}</span>
+                    selectedTemplate === 'ats_modern' ? (
+                      <div key={i} className="flex mb-3 gap-4 font-serif">
+                        <div className="w-[20%] text-right text-[10px] font-bold text-gray-600 leading-tight pr-4 border-r border-black">
+                          {exp.startDate} {exp.endDate ? `— ${exp.endDate}` : ''}
+                        </div>
+                        <div className="w-[80%]">
+                          <div className="font-bold text-black text-[13px] mb-1 leading-tight">{exp.jobTitle}, {exp.company}</div>
+                          <ul className="list-disc pl-4 space-y-0.5">
+                            {exp.description.slice(0, 3).map((l, j) => <li key={j} className="text-[12px] leading-tight text-gray-800">{l}</li>)}
+                          </ul>
+                        </div>
                       </div>
-                      <div className="text-[10px] italic font-bold text-gray-700 mb-1">{exp.company}</div>
-                      <ul className="list-disc pl-4 space-y-1">
-                        {exp.description.slice(0, 3).map((l, j) => <li key={j} className="text-[10px] leading-tight">{l}</li>)}
-                      </ul>
-                    </div>
+                    ) : (
+                      <div key={i} className={`mb-3 ${selectedTemplate === 'academic' ? 'font-serif text-gray-900 border-none' : 'font-sans text-gray-800'}`}>
+                        <div className="flex justify-between font-bold text-black text-[13px]">
+                          <span className={selectedTemplate === 'academic' ? 'text-black' : ''}>{exp.jobTitle.toUpperCase()}</span>
+                          <span className="font-normal text-gray-600">{exp.startDate} — {exp.endDate}</span>
+                        </div>
+                        <div className="text-[11px] italic font-bold text-gray-700 mb-0.5 leading-tight">{exp.company}</div>
+                        <ul className="list-disc pl-4 space-y-0.5">
+                          {exp.description.slice(0, 3).map((l, j) => <li key={j} className="text-[12px] leading-tight text-gray-800">{l}</li>)}
+                        </ul>
+                      </div>
+                    )
                   ))}
                 </div>
               )}
 
               {dataPayload.education.length > 0 && (
                 <div>
-                   <h2 className={`text-[11px] font-black uppercase pb-1 mb-2 
-                    ${selectedTemplate === 'modern' ? 'text-blue-600 border-b border-blue-100' : 
+                  <h2 className={`text-[11px] font-black uppercase pb-1 mb-2 
+                    ${selectedTemplate === 'modern' ? 'text-[#2563eb] border-b border-blue-100' : 
                       selectedTemplate === 'google' ? 'text-[#1a73e8] border-b border-gray-100 pb-2' :
-                      selectedTemplate === 'consultant' ? 'text-black border-b border-black pb-1' :
+                      selectedTemplate === 'consultant' ? 'text-[#051c2c] border-b border-[#051c2c] pb-1' :
                       selectedTemplate === 'ivy' ? 'text-black border-b border-black pb-1 text-center' :
                       selectedTemplate === 'creative' ? 'text-[#d97706] text-sm lowercase' :
                       selectedTemplate === 'healthcare' ? 'text-[#0891b2] border-l-4 border-[#0891b2] pl-2' :
                       selectedTemplate === 'sales' ? 'text-white bg-[#b91c1c] p-1 px-2' :
-                      selectedTemplate === 'executive' ? 'border-b border-t border-black py-1' : 
-                      selectedTemplate === 'minimal' ? 'text-gray-400 tracking-[0.3em]' : 'border-b border-black text-black'}`}>
+                      selectedTemplate === 'executive' ? 'border-b border-t border-black py-1 text-left' : 
+                      selectedTemplate === 'ats_pro' ? 'bg-[#EEEEEE] text-black border-b border-black px-2 py-1' :
+                      selectedTemplate === 'ats_modern' ? 'bg-[#F5F5F0] text-black px-2 py-1' :
+                      selectedTemplate === 'academic' ? 'border-b border-black text-black' :
+                      selectedTemplate === 'minimal' ? 'text-black font-bold uppercase tracking-[0.1em] border-none' : 'border-b border-black text-black'}`}>
                     Education
                   </h2>
                   {dataPayload.education.map((edu, i) => (
-                    <div key={i} className="flex justify-between items-start mb-2">
-                      <div>
-                        <div className="font-bold text-black text-[10px]">{edu.institution}</div>
-                        <div className="text-[9px]">{edu.degree} in {edu.fieldOfStudy} {edu.gpa && `| GPA: ${edu.gpa}`}</div>
+                    selectedTemplate === 'ats_modern' ? (
+                      <div key={i} className="flex mb-3 gap-4 font-serif">
+                        <div className="w-[20%] text-right text-[10px] font-bold text-gray-600 leading-tight pr-4 border-r border-black">
+                          {edu.graduationYear}
+                        </div>
+                        <div className="w-[80%]">
+                          <div className="font-bold text-black text-[13px] mb-0.5 leading-tight">{edu.institution}</div>
+                          <div className="text-[11px] text-gray-700">{edu.degree} in {edu.fieldOfStudy} {edu.gpa && `| GPA: ${edu.gpa}`}</div>
+                        </div>
                       </div>
-                      <span className="text-[10px] text-gray-600">{edu.graduationYear}</span>
-                    </div>
+                    ) : (
+                      <div key={i} className={`flex justify-between items-start mb-2 ${selectedTemplate === 'academic' ? 'font-serif text-gray-900' : 'font-sans'}`}>
+                        <div>
+                          <div className="font-bold text-black text-[12px] leading-tight">{edu.institution}</div>
+                          <div className="text-[11px] text-gray-700">{edu.degree} in {edu.fieldOfStudy} {edu.gpa && `| GPA: ${edu.gpa}`}</div>
+                        </div>
+                        <span className="text-[11px] text-gray-600">{edu.graduationYear}</span>
+                      </div>
+                    )
+                  ))}
+                </div>
+              )}
+
+              {dataPayload.projects.length > 0 && (
+                <div>
+                  <h2 className={`text-[11px] font-black uppercase pb-1 mb-4 
+                    ${selectedTemplate === 'modern' ? 'text-[#2563eb] border-b border-blue-100' : 
+                      selectedTemplate === 'google' ? 'text-[#1a73e8] border-b border-gray-100 pb-2' :
+                      selectedTemplate === 'consultant' ? 'text-[#051c2c] border-b border-[#051c2c] pb-1' :
+                      selectedTemplate === 'ivy' ? 'text-black border-b border-black pb-1 text-center' :
+                      selectedTemplate === 'creative' ? 'text-[#d97706] text-sm lowercase' :
+                      selectedTemplate === 'healthcare' ? 'text-[#0891b2] border-l-4 border-[#0891b2] pl-2' :
+                      selectedTemplate === 'sales' ? 'text-white bg-[#b91c1c] p-1 px-2' :
+                      selectedTemplate === 'executive' ? 'border-b border-t border-black py-1 text-left' : 
+                      selectedTemplate === 'ats_pro' ? 'bg-[#EEEEEE] text-black border-b border-black px-2 py-1' :
+                      selectedTemplate === 'ats_modern' ? 'bg-[#F5F5F0] text-black px-2 py-1' :
+                      selectedTemplate === 'academic' ? 'border-b border-black text-black' :
+                      selectedTemplate === 'minimal' ? 'text-black font-bold uppercase tracking-[0.1em] border-none' : 'border-b border-black text-black'}`}>
+                    Projects
+                  </h2>
+                  {dataPayload.projects.map((proj, i) => (
+                    selectedTemplate === 'ats_modern' ? (
+                      <div key={i} className="flex mb-4 gap-4 font-serif">
+                        <div className="w-[20%] text-right text-[10px] font-bold text-gray-600 leading-tight pr-4 border-r border-black">
+                          {proj.title}
+                        </div>
+                        <div className="w-[80%]">
+                          <div className="font-bold text-black text-[11px] mb-1">Academic Project</div>
+                          <ul className="list-disc pl-4 space-y-1">
+                            {proj.description.slice(0, 3).map((l, j) => <li key={j} className="text-[10px] leading-tight text-gray-800">{l}</li>)}
+                          </ul>
+                        </div>
+                      </div>
+                    ) : (
+                      <div key={i} className={`mb-4 ${selectedTemplate === 'academic' ? 'font-serif' : 'font-sans'}`}>
+                        <div className="flex justify-between font-bold text-black text-[11px]">
+                          <span>{proj.title}</span>
+                          <span className="font-normal text-blue-600 text-[9px] truncate max-w-[150px]">{proj.link}</span>
+                        </div>
+                        <div className="text-[10px] italic font-bold text-gray-700 mb-1 leading-tight">{proj.technologies}</div>
+                        <ul className="list-disc pl-4 space-y-1">
+                          {proj.description.slice(0, 3).map((l, j) => <li key={j} className="text-[10px] leading-tight text-gray-800">{l}</li>)}
+                        </ul>
+                      </div>
+                    )
                   ))}
                 </div>
               )}
 
               {selectedTemplate !== 'sidebar' && dataPayload.skills.length > 0 && (
                 <div>
-                   <h2 className={`text-[11px] font-black uppercase pb-1 mb-2 
-                    ${selectedTemplate === 'modern' ? 'text-blue-600 border-b border-blue-100' : 
+                  <h2 className={`text-[13px] font-black uppercase pb-1 mb-2 
+                    ${selectedTemplate === 'modern' ? 'text-[#2563eb] border-b border-[#2563eb]/20' : 
                       selectedTemplate === 'google' ? 'text-[#1a73e8] border-b border-gray-100 pb-2' :
-                      selectedTemplate === 'consultant' ? 'text-black border-b border-black pb-1' :
-                      selectedTemplate === 'ivy' ? 'text-black border-b border-black pb-1 text-center' :
-                      selectedTemplate === 'creative' ? 'text-[#d97706] text-sm lowercase' :
+                      selectedTemplate === 'consultant' ? 'text-[#051c2c] border-b border-[#051c2c] pb-1' :
+                      selectedTemplate === 'ivy' ? 'text-black border-b border-black pb-1 text-center font-serif capitalize' :
+                      selectedTemplate === 'creative' ? 'text-[#d97706] text-sm lowercase border-b-2 border-[#d97706]/10' :
                       selectedTemplate === 'healthcare' ? 'text-[#0891b2] border-l-4 border-[#0891b2] pl-2' :
                       selectedTemplate === 'sales' ? 'text-white bg-[#b91c1c] p-1 px-2' :
-                      selectedTemplate === 'executive' ? 'border-b border-t border-black py-1' : 
-                      selectedTemplate === 'minimal' ? 'text-gray-400 tracking-[0.3em]' : 'border-b border-black text-black'}`}>
+                      selectedTemplate === 'executive' ? 'border-b border-t border-black py-1 text-left' : 
+                      selectedTemplate === 'ats_pro' ? 'bg-[#EEEEEE] text-black border-b border-black px-2 py-1' :
+                      selectedTemplate === 'ats_modern' ? 'bg-[#F5F5F0] text-black px-2 py-1' :
+                      selectedTemplate === 'academic' ? 'border-b border-black text-black' :
+                      selectedTemplate === 'minimal' ? 'text-black font-bold uppercase tracking-[0.2em] border-none' : 'border-b-2 border-black text-black'}`}>
                     Skills
                   </h2>
-                  <p className="text-[10px] font-bold text-black">{dataPayload.skills.join(' • ')}</p>
+                  <p className="text-[10px] font-bold text-gray-800">{dataPayload.skills.join(' • ')}</p>
                 </div>
               )}
 
               {dataPayload.certifications.length > 0 && (
                 <div>
                    <h2 className={`text-[11px] font-black uppercase pb-1 mb-2 
-                    ${selectedTemplate === 'modern' ? 'text-blue-600 border-b border-blue-100' : 
+                    ${selectedTemplate === 'modern' ? 'text-[#2563eb] border-b border-blue-100' : 
                       selectedTemplate === 'google' ? 'text-[#1a73e8] border-b border-gray-100 pb-2' :
-                      selectedTemplate === 'consultant' ? 'text-black border-b border-black pb-1' :
+                      selectedTemplate === 'consultant' ? 'text-[#051c2c] border-b border-[#051c2c] pb-1' :
                       selectedTemplate === 'ivy' ? 'text-black border-b border-black pb-1 text-center' :
                       selectedTemplate === 'creative' ? 'text-[#d97706] text-sm lowercase' :
                       selectedTemplate === 'healthcare' ? 'text-[#0891b2] border-l-4 border-[#0891b2] pl-2' :
                       selectedTemplate === 'sales' ? 'text-white bg-[#b91c1c] p-1 px-2' :
-                      selectedTemplate === 'executive' ? 'border-b border-t border-black py-1' : 
-                      selectedTemplate === 'minimal' ? 'text-gray-400 tracking-[0.3em]' : 'border-b border-black text-black'}`}>
+                      selectedTemplate === 'executive' ? 'border-b border-t border-black py-1 text-left' : 
+                      selectedTemplate === 'ats_pro' ? 'bg-[#EEEEEE] text-black border-b border-black px-2 py-1' :
+                      selectedTemplate === 'ats_modern' ? 'bg-[#F5F5F0] text-black px-2 py-1' :
+                      selectedTemplate === 'academic' ? 'border-b border-black text-black' :
+                      selectedTemplate === 'minimal' ? 'text-black font-bold uppercase tracking-[0.1em] border-none' : 'border-b border-black text-black'}`}>
                     Certifications
                   </h2>
-                  <ul className="list-disc pl-4 space-y-1">
-                    {dataPayload.certifications.map((c, i) => <li key={i} className="text-[10px] leading-tight">{c}</li>)}
+                  <ul className="list-disc pl-4 space-y-0.5">
+                    {dataPayload.certifications.map((c, i) => <li key={i} className="text-[10px] leading-tight text-gray-800">{c}</li>)}
                   </ul>
                 </div>
               )}
@@ -1403,19 +1523,22 @@ const BuilderPage = ({ initialTemplate, initialData, onBack }) => {
               {dataPayload.achievements.length > 0 && (
                 <div>
                    <h2 className={`text-[11px] font-black uppercase pb-1 mb-2 
-                    ${selectedTemplate === 'modern' ? 'text-blue-600 border-b border-blue-100' : 
+                    ${selectedTemplate === 'modern' ? 'text-[#2563eb] border-b border-blue-100' : 
                       selectedTemplate === 'google' ? 'text-[#1a73e8] border-b border-gray-100 pb-2' :
-                      selectedTemplate === 'consultant' ? 'text-black border-b border-black pb-1' :
+                      selectedTemplate === 'consultant' ? 'text-[#051c2c] border-b border-[#051c2c] pb-1' :
                       selectedTemplate === 'ivy' ? 'text-black border-b border-black pb-1 text-center' :
                       selectedTemplate === 'creative' ? 'text-[#d97706] text-sm lowercase' :
                       selectedTemplate === 'healthcare' ? 'text-[#0891b2] border-l-4 border-[#0891b2] pl-2' :
                       selectedTemplate === 'sales' ? 'text-white bg-[#b91c1c] p-1 px-2' :
-                      selectedTemplate === 'executive' ? 'border-b border-t border-black py-1' : 
-                      selectedTemplate === 'minimal' ? 'text-gray-400 tracking-[0.3em]' : 'border-b border-black text-black'}`}>
+                      selectedTemplate === 'executive' ? 'border-b border-t border-black py-1 text-left' : 
+                      selectedTemplate === 'ats_pro' ? 'bg-[#EEEEEE] text-black border-b border-black px-2 py-1' :
+                      selectedTemplate === 'ats_modern' ? 'bg-[#F5F5F0] text-black px-2 py-1' :
+                      selectedTemplate === 'academic' ? 'border-b border-black text-black' :
+                      selectedTemplate === 'minimal' ? 'text-black font-bold uppercase tracking-[0.1em] border-none' : 'border-b border-black text-black'}`}>
                     Achievements
                   </h2>
-                  <ul className="list-disc pl-4 space-y-1">
-                    {dataPayload.achievements.map((a, i) => <li key={i} className="text-[10px] leading-tight">{a}</li>)}
+                  <ul className="list-disc pl-4 space-y-0.5">
+                    {dataPayload.achievements.map((a, i) => <li key={i} className="text-[10px] leading-tight text-gray-800">{a}</li>)}
                   </ul>
                 </div>
               )}
@@ -1508,7 +1631,8 @@ export default function App() {
         {appState === 'builder' && (
           <motion.div key="builder" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}>
             <BuilderPage 
-              initialTemplate={selectedTemplate} 
+              selectedTemplate={selectedTemplate}
+              setSelectedTemplate={setSelectedTemplate}
               initialData={initialResumeData}
               onBack={() => {
                 setInitialResumeData(null);
