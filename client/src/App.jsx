@@ -4,6 +4,7 @@ import { FileText, Download, CheckCircle, XCircle, User, Briefcase, GraduationCa
 import axios from 'axios';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { ResumePDF } from './components/ResumePDF';
+import { LandingPage } from './components/LandingPage';
 import { toPng } from 'html-to-image';
 import download from 'downloadjs';
 import { useRef } from 'react';
@@ -38,176 +39,7 @@ const TEMPLATES = [
   { id: 'ats_modern', name: 'Modern Analyst', desc: 'Clean vertical timelines with sidebar labels', image: 'template_ats_modern_analyst.png' }
 ];
 
-// --- Landing Page Component ---
-const LandingPage = ({ onStart, onAIUpload, onScore, onResumeScore }) => {
-  const [isUploading, setIsUploading] = React.useState(false);
-  const [aiHealthy, setAiHealthy] = React.useState(true);
-  const fileInputRef = React.useRef(null);
-
-  React.useEffect(() => {
-    let mounted = true;
-    aiClient.get('/')
-      .then(() => { if (mounted) setAiHealthy(true); })
-      .catch(() => { if (mounted) setAiHealthy(false); });
-    return () => { mounted = false; };
-  }, []);
-
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    
-    setIsUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const response = await aiClient.post(`/api/v1/extract`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      
-      onAIUpload(response.data);
-    } catch (err) {
-      console.error('AI Extraction failed:', err);
-      alert('Failed to extract data. Please try again or start manually.');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-start md:justify-center bg-black relative overflow-y-auto overflow-x-hidden font-sans perspective-1000 py-8 md:py-0 scrollbar-hide">
-      
-      {/* 3D Background Elements */}
-      <motion.div 
-        animate={{ rotate: 360, scale: [1, 1.2, 1] }} 
-        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-        className="absolute -top-[30%] -left-[10%] w-[80vw] h-[80vw] rounded-full bg-gradient-to-br from-[#ccff00]/10 to-transparent blur-[120px]"
-      />
-      <motion.div 
-        animate={{ rotate: -360, scale: [1, 1.3, 1] }} 
-        transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-        className="absolute -bottom-[30%] -right-[10%] w-[70vw] h-[70vw] rounded-full bg-gradient-to-tr from-[#ccff00]/5 to-transparent blur-[150px]"
-      />
-
-      <div className="z-10 flex flex-col items-center justify-center text-center px-6 max-w-5xl text-white">
-        
-        <motion.div
-          initial={{ opacity: 0, y: -50, rotateX: -45 }}
-          animate={{ opacity: 1, y: 0, rotateX: 0 }}
-          transition={{ duration: 1, type: "spring", bounce: 0.4 }}
-          className="mb-6 flex items-center justify-center space-x-4"
-        >
-          <div className="p-4 bg-gradient-to-br from-[#ccff00] to-[#99ff00] rounded-2xl shadow-[0_0_50px_rgba(204,255,0,0.4)] border border-white/10">
-            <FileText size={48} className="text-black drop-shadow-lg" />
-          </div>
-        </motion.div>
-
-        <motion.h1 
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2, duration: 0.8, type: "spring" }}
-          className="text-4xl md:text-8xl font-black tracking-tighter mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white via-[#ccff00] to-gray-500 drop-shadow-2xl"
-        >
-          Next-Gen ATS <br className="hidden md:block"/> <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ccff00] to-[#00ffcc]">Resume Builder</span>
-        </motion.h1>
-
-        <motion.p 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5, duration: 0.8 }}
-          className="text-xl md:text-2xl text-gray-300 mb-12 max-w-2xl font-medium leading-relaxed"
-        >
-          Beat the bots with our AI-powered structuring engine. Craft your resume in real-time or upload your old one to instantly switch to a perfect ATS-friendly layout.
-        </motion.p>
-
-        {!aiHealthy && (
-          <div className="mb-8 max-w-2xl w-full rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-left">
-            <p className="text-sm font-bold text-red-200">AI service not reachable.</p>
-            <p className="text-xs text-red-200/80 mt-1">
-              Set <span className="font-mono">VITE_AI_SERVICE_URL</span> or start the Python service (default: {AI_SERVICE_URL}).
-            </p>
-          </div>
-        )}
-
-        <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-4 sm:gap-6 w-full sm:w-auto px-6 sm:px-0">
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleFileChange} 
-            className="hidden" 
-            accept=".pdf,.docx"
-          />
-          
-          <motion.button
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, type: "spring", bounce: 0.5 }}
-            whileHover={{ scale: 1.05, translateY: -5, boxShadow: "0px 20px 40px rgba(204, 255, 0, 0.3)" }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => fileInputRef.current.click()}
-            disabled={isUploading}
-            className="group relative px-6 md:px-10 py-4 md:py-5 bg-white text-black font-bold text-lg md:text-xl flex items-center justify-center gap-3 overflow-hidden border border-white/20 shadow-xl transition-all rounded-2xl w-full sm:w-auto min-w-[200px]"
-          >
-            <span className="relative z-10 flex items-center gap-2 font-black italic">
-              {isUploading ? <span className="animate-spin text-[#ccff00]"><Zap size={20}/></span> : <Upload size={20} />} 
-              {isUploading ? "Reading..." : "Upload & Build"}
-            </span>
-          </motion.button>
-
-          <motion.button
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.85, type: "spring", bounce: 0.5 }}
-            whileHover={{ scale: 1.05, translateY: -5, boxShadow: "0px 20px 40px rgba(0, 255, 204, 0.25)" }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onScore}
-            className="group relative px-6 md:px-10 py-4 md:py-5 bg-transparent text-white font-bold text-lg md:text-xl flex items-center justify-center gap-3 overflow-hidden border border-white/10 shadow-xl transition-all rounded-2xl w-full sm:w-auto min-w-[200px]"
-          >
-            <span className="relative z-10 flex items-center gap-2 font-black italic">
-              <CheckCircle size={20} /> Match Score
-            </span>
-          </motion.button>
-
-          <motion.button
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.9, type: "spring", bounce: 0.5 }}
-            whileHover={{ scale: 1.05, translateY: -5, boxShadow: "0px 20px 40px rgba(204, 255, 0, 0.3)" }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onResumeScore}
-            className="group relative px-6 md:px-10 py-4 md:py-5 bg-transparent text-white font-bold text-lg md:text-xl flex items-center justify-center gap-3 overflow-hidden border border-white/10 shadow-xl transition-all rounded-2xl w-full sm:w-auto min-w-[200px]"
-          >
-            <span className="relative z-10 flex items-center gap-2 font-black italic text-center"> <Star size={20} className="text-[#ccff00]"/> Quality Score</span>
-          </motion.button>
-
-          <motion.button
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.95, type: "spring", bounce: 0.5 }}
-            whileHover={{ scale: 1.05, translateY: -5, boxShadow: "0_0_20px_rgba(204,255,0,0.3)" }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onStart}
-            className="group relative px-6 md:px-10 py-4 md:py-5 bg-[#ccff00] rounded-2xl text-black font-bold text-lg md:text-xl flex items-center justify-center gap-3 overflow-hidden border border-[#ccff00]/20 shadow-[0_0_20px_rgba(204,255,0,0.2)] transition-all w-full sm:w-auto min-w-[200px]"
-          >
-            <span className="relative z-10 flex items-center gap-2 font-black italic text-center">Create Manually</span>
-          </motion.button>
-        </div>
-      </div>
-
-      <motion.footer
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.2 }}
-        className="relative md:absolute bottom-0 md:bottom-10 w-full text-center px-6 py-4 md:py-0 text-gray-600 font-bold uppercase tracking-[0.15em] md:tracking-[0.4em] text-[10px] z-20 mt-10"
-      >
-        Designed and developed by <span className="text-[#ccff00]">Hemasundar Maroti</span>
-      </motion.footer>
-
-    </div>
-  );
-};
+// --- Landing Page is imported from ./components/LandingPage ---
 
 
 // --- Template Gallery Stage ---
@@ -622,60 +454,40 @@ const BuilderPage = ({ selectedTemplate, setSelectedTemplate, initialData, onBac
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const [isExportingImage, setIsExportingImage] = useState(false);
+
   const downloadImage = async () => {
-    if (resumeRef.current === null) return;
+    if (resumeRef.current === null || isExportingImage) return;
     
+    setIsExportingImage(true);
     try {
-      // Step 1: Capture the entire content at high resolution
+      // Capture the entire resume at high resolution in a single continuous page
       const dataUrl = await toPng(resumeRef.current, { 
         quality: 1, 
         pixelRatio: 3, // High quality for professional use
         backgroundColor: '#ffffff',
+        filter: (node) => {
+          // Hide dashed page break guides or print-only helper elements
+          if (node.classList && (node.classList.contains('print:hidden') || node.getAttribute?.('title') === 'Page Break Guide')) {
+            return false;
+          }
+          return true;
+        },
         style: {
           transform: 'scale(1)',
           borderRadius: '0'
         }
       });
       
-      const img = new Image();
-      img.src = dataUrl;
-      await new Promise(resolve => img.onload = resolve);
-      
-      const canvasWidth = img.width;
-      const canvasHeight = img.height;
-      
-      // Calculate A4 Proportion Height (210mm x 297mm)
-      const pageHeight = Math.floor((canvasWidth / 210) * 297);
-      const totalPages = Math.ceil(canvasHeight / pageHeight);
-      
       const fileNameBase = `${(personalInfo.fullName || 'Resume').replace(/[^a-zA-Z0-9._-]/g, '_')}_${(personalInfo.role || 'Profile').replace(/[^a-zA-Z0-9._-]/g, '_')}_ResuSolve`;
 
-      if (totalPages <= 1) {
-        // Just download the single page if it fits
-        download(dataUrl, `${fileNameBase}.png`);
-      } else {
-        // Loop through and split into multiple A4-sized images
-        for (let i = 0; i < totalPages; i++) {
-          const pageCanvas = document.createElement('canvas');
-          pageCanvas.width = canvasWidth;
-          pageCanvas.height = pageHeight;
-          const ctx = pageCanvas.getContext('2d');
-          
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, canvasWidth, pageHeight);
-          
-          ctx.drawImage(
-            img,
-            0, i * pageHeight, canvasWidth, pageHeight, // Source Rect
-            0, 0, canvasWidth, pageHeight // Dest Rect
-          );
-          
-          const pageDataUrl = pageCanvas.toDataURL('image/png', 1.0);
-          download(pageDataUrl, `${fileNameBase}_Page_${i + 1}.png`);
-        }
-      }
+      // Export the entire resume in one single image
+      download(dataUrl, `${fileNameBase}.png`);
     } catch (err) {
       console.error('High-quality image export failed:', err);
+      alert('Failed to export image. Please try again.');
+    } finally {
+      setIsExportingImage(false);
     }
   };
 
@@ -1650,9 +1462,10 @@ const BuilderPage = ({ selectedTemplate, setSelectedTemplate, initialData, onBac
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={downloadImage}
-              className="flex-1 h-14 flex items-center justify-center gap-3 bg-[#ccff00] text-black text-sm rounded-2xl shadow-xl font-black uppercase tracking-wider transition-all border border-[#ccff00]/30"
+              disabled={isExportingImage}
+              className="flex-1 h-14 flex items-center justify-center gap-3 bg-[#ccff00] text-black text-sm rounded-2xl shadow-xl font-black uppercase tracking-wider transition-all border border-[#ccff00]/30 disabled:opacity-50"
             >
-              <FileText size={18} /> Export Image
+              <FileText size={18} /> {isExportingImage ? 'Exporting...' : 'Export Image'}
             </motion.button>
           </div>
         </motion.div>
@@ -1685,6 +1498,7 @@ export default function App() {
               onScore={() => setAppState('score')}
               onResumeScore={() => setAppState('resume-score')}
               onAIUpload={handleAIUpload}
+              onSelectTemplate={(id) => { setSelectedTemplate(id); setAppState('builder'); }}
             />
           </motion.div>
         )}

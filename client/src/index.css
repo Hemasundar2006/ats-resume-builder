@@ -1,19 +1,38 @@
 @import "tailwindcss";
 
+:root {
+  --color-ink: #0F172A;
+  --color-bg-base: #FAFDFB;
+  --color-panel: #FFFFFF;
+  --color-panel-border: rgba(15, 23, 42, 0.08);
+  --color-peach: #FF8E72;
+  --color-peach-light: #FFB39F;
+  --color-peach-bg: #FFF4EF;
+  --color-lightgreen: #10B981;
+  --color-lightgreen-soft: #34D399;
+  --color-lightgreen-bg: #E8F8F0;
+  --color-paper: #FFFFFF;
+  --color-paper-edge: #E2E8F0;
+  --color-paper-text: #0F172A;
+  --color-offwhite: #FFFFFF;
+  --color-muted: #64748B;
+  --color-amber: #FF8E72;
+}
+
 @layer base {
   body {
-    background-color: var(--color-gray-950, #060912);
-    color: var(--color-gray-50, #f9fafb);
-    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--color-bg-base);
+    color: var(--color-ink);
+    font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
 }
 
 .font-serif {
-  font-family: 'Source Serif 4', ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  font-family: 'Source Serif 4', Georgia, Cambria, "Times New Roman", Times, serif;
 }
 
 .font-sans {
-  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 @layer utilities {
@@ -23,6 +42,9 @@
   .perspective-1000 {
     perspective: 1000px;
   }
+  .perspective-1500 {
+    perspective: 1500px;
+  }
   .transform-gpu {
     transform: translateZ(0);
     will-change: transform;
@@ -30,6 +52,176 @@
   .preserve-3d {
     transform-style: preserve-3d;
   }
+}
+
+/* --- Marquee Keyframe Loops --- */
+@keyframes marquee-left {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes marquee-right {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0%); }
+}
+
+.animate-marquee-left {
+  display: flex;
+  width: max-content;
+  animation: marquee-left 32s linear infinite;
+}
+
+.animate-marquee-right {
+  display: flex;
+  width: max-content;
+  animation: marquee-right 32s linear infinite;
+}
+
+.animate-marquee-slow {
+  display: flex;
+  width: max-content;
+  animation: marquee-left 52s linear infinite;
+}
+
+.pause-hover:hover {
+  animation-play-state: paused;
+}
+
+/* --- Scanner Stage Styles (Light Green, White, Peach Theme) --- */
+.scanner-pinned-container {
+  height: 350vh;
+  position: relative;
+  background: linear-gradient(180deg, #FFFFFF 0%, #ECFAF2 45%, #FFF4EF 100%);
+}
+
+.scanner-sticky-viewport {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  perspective: 1500px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scanner-stack {
+  position: relative;
+  width: 340px;
+  height: 470px;
+  transform-style: preserve-3d;
+}
+
+@media (max-width: 640px) {
+  .scanner-stack {
+    width: 280px;
+    height: 390px;
+  }
+}
+
+.scanner-sheet {
+  position: absolute;
+  inset: 0;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(226, 232, 240, 0.9);
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+  color: #0F172A;
+  overflow: hidden;
+}
+
+/* Individual Sheet Fan 3D Transforms */
+.scanner-sheet-0 {
+  transform: translateZ(calc(var(--fan, 0) * 85px)) translateY(calc(var(--fan, 0) * -38px)) rotateX(calc(var(--fan, 0) * 14deg)) rotateZ(calc(var(--fan, 0) * -3.5deg));
+  opacity: calc(1 - (var(--reveal, 0) * 0.35));
+}
+
+.scanner-sheet-1 {
+  transform: translateZ(calc(var(--fan, 0) * 25px)) translateY(calc(var(--fan, 0) * -10px)) rotateX(calc(var(--fan, 0) * 8deg)) rotateZ(calc(var(--fan, 0) * 1.5deg));
+  opacity: calc(0.97 - (var(--reveal, 0) * 0.45));
+}
+
+.scanner-sheet-2 {
+  transform: translateZ(calc(var(--fan, 0) * -35px)) translateY(calc(var(--fan, 0) * 16px)) rotateX(calc(var(--fan, 0) * 2deg)) rotateZ(calc(var(--fan, 0) * -1.5deg));
+  opacity: calc(0.94 - (var(--reveal, 0) * 0.55));
+}
+
+/* Radiant Peach Scanbeam line */
+.scanner-beam {
+  position: absolute;
+  left: -8%;
+  width: 116%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, var(--color-peach) 25%, #FFF0EB 50%, var(--color-peach) 75%, transparent 100%);
+  box-shadow: 0 0 30px 6px rgba(255, 142, 114, 0.65), 0 0 10px 2px var(--color-peach);
+  top: calc(var(--sweep, 0) * 100%);
+  pointer-events: none;
+  z-index: 40;
+  transition: opacity 0.15s ease-out;
+}
+
+/* Score Reveal Overlay */
+.scanner-score-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(calc(0.85 + (var(--reveal, 0) * 0.15)));
+  opacity: var(--reveal, 0);
+  pointer-events: auto;
+  z-index: 50;
+  will-change: transform, opacity;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 25px 60px -12px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(226, 232, 240, 0.8);
+  color: #0F172A;
+}
+
+/* Template one-time tilt-in cards */
+.template-tilt-card {
+  opacity: 0;
+  transform: perspective(1000px) rotateY(-12deg) translateZ(-35px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+
+.template-tilt-card.is-visible {
+  opacity: 1;
+  transform: perspective(1000px) rotateY(0deg) translateZ(0);
+}
+
+/* Static Hero Paper tilt */
+.hero-paper-static {
+  transform: perspective(1200px) rotateY(-12deg) rotateX(8deg) rotateZ(-1deg);
+  box-shadow: -15px 25px 50px -10px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(226, 232, 240, 0.8);
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee-left,
+  .animate-marquee-right,
+  .animate-marquee-slow {
+    animation: none !important;
+    transform: none !important;
+  }
+  .scanner-stack {
+    --fan: 1 !important;
+    --sweep: 0 !important;
+    --reveal: 1 !important;
+  }
+  .scanner-beam {
+    display: none !important;
+  }
+  .template-tilt-card {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+
   
   /* Hide scrollbar for Chrome, Safari and Opera */
   .hide-scroll::-webkit-scrollbar {
@@ -62,4 +254,4 @@
     transform-origin: top center;
     transition: transform 0.3s ease-out;
   }
-}
+
